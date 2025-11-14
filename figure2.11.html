@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维向量线性组合可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #aaccff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content-container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 20px;
+        }
+        
+        .controls {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #aaccff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+        }
+        
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            width: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 10px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+        
+        .visualization-container {
+            flex: 1;
+            height: 70vh;
+            min-height: 500px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        
+        .vector1-color { background: #ff6b6b; }
+        .vector2-color { background: #4ecdc4; }
+        .vector3-color { background: #ffd166; }
+        .vectorv-color { background: #ffff00; }
+        .result-color { background: #6a0572; }
+        
+        .math-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 250px;
+        }
+        
+        .math-info h3 {
+            color: #ffd166;
+            margin-bottom: 10px;
+        }
+        
+        .equation {
+            font-family: 'Cambria Math', serif;
+            font-size: 18px;
+            margin: 8px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 1000px) {
+            .content-container {
+                flex-direction: column;
+            }
+            
+            .controls {
+                width: 100%;
+            }
+            
+            .visualization-container {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>三维向量线性张成可视化</h1>
+        <p>通过滑块调整系数，观察三维向量的线性张成结果</p>
+    </div>
+    
+    <div class="content-container">
+        <div class="controls">
+            <!-- <div class="control-group">
+                <h3>向量系数控制</h3>
+                <div class="slider-container">
+                    <label for="coeff1">系数 x₁:</label>
+                    <input type="range" id="coeff1" min="-3" max="3" step="0.1" value="1">
+                    <span class="slider-value" id="coeff1-value">1.0</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="coeff2">系数 x₂:</label>
+                    <input type="range" id="coeff2" min="-3" max="3" step="0.1" value="1">
+                    <span class="slider-value" id="coeff2-value">1.0</span>
+                </div>
+            </div> -->
+            
+            <div class="control-group">
+                <h3>显示控制</h3>
+                <!-- <div class="checkbox-container">
+                    <input type="checkbox" id="show-result" checked>
+                    <label for="show-result">显示线性组合结果</label>
+                </div> -->
+                
+                <!-- <div class="checkbox-container">
+                    <input type="checkbox" id="show-parallelepiped">
+                    <label for="show-parallelepiped">显示平行六面体</label>
+                </div> -->
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-grid" checked>
+                    <label for="show-grid">显示网格</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="auto-rotate" checked>
+                    <label for="auto-rotate">自动旋转</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-span-plane" checked>
+                    <label for="show-span-plane">显示张成平面</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>向量信息</h3>
+                <p>向量 α₁: (1, 2, 2)</p>
+                <p>向量 α₂: (2, 5, 4)</p>
+                <p>向量 β : (1, 1, 0)</p>
+            </div>
+        </div>
+        
+        <div class="visualization-container">
+            <div id="canvas-container"></div>
+            <div class="info-panel">
+                <p>提示: 按住鼠标左键拖拽旋转视角</p>
+                <p>滚轮缩放 | 双击重置视图</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color vector1-color"></div>向量 α₁</div>
+                <div class="legend-item"><div class="legend-color vector2-color"></div>向量 α₂</div>
+                <div class="legend-item"><div class="legend-color vectorv-color"></div>向量 β </div>
+                <!-- <div class="legend-item"><div class="legend-color result-color"></div>线性组合结果</div> -->
+            </div>
+            <!-- <div class="math-info">
+                <h3>当前线性组合</h3>
+                <div class="equation" id="current-equation">
+                    x₁·α₁ + x₂·α₂ = (0, 0, 0)
+                </div>
+            </div> -->
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>三维向量线性张成可视化 | 线性代数教学工具</p>
+    </div>
+
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer;
+        let controls;
+        let vector1, vector2, resultVector;
+        let parallelepiped;
+        let gridHelper;
+        let vectorV;
+        let spanPlane;
+        
+        // 向量定义 (三维)
+        const v1 = new THREE.Vector3(1, 2, 2);
+        const v2 = new THREE.Vector3(2, 5, 4);
+        const v = new THREE.Vector3(1, 1, 0);
+        
+        // 当前系数
+        let coeff1 = 1.0;
+        let coeff2 = 1.0;
+        
+        // 颜色定义
+        const vector1Color = 0xff6b6b; // 红色
+        const vector2Color = 0x4ecdc4; // 青色
+        const vectorVColor = 0xffff00; // 黄色
+        const resultColor = 0x6a0572;   // 紫色
+        const gridColor = 0x444444;     // 网格颜色
+        
+        // 旋转控制
+        let autoRotate = true;
+        let isDragging = false;
+        let previousMousePosition = {
+            x: 0,
+            y: 0
+        };
+        
+        // 相机控制
+        let targetZoom = 20;
+        let currentZoom = 20;
+        let cameraAngleX = 0;
+        let cameraAngleY = 0;
+        
+        // 初始化场景
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c2c);
+            
+            // 创建相机
+            const container = document.querySelector('.visualization-container');
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            // 设置相机位置，使X轴朝向屏幕，Y轴水平向右，Z轴向上
+            camera.position.set(20, 0, 0);
+            camera.up.set(0, 0, 1);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight1.position.set(1, 1, 1);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight2.position.set(-1, -1, -1);
+            scene.add(directionalLight2);
+            
+            // 创建坐标轴
+            createAxes();
+            
+            // 创建网格
+            createGrid();
+            
+            // 创建平行四边形
+            createParallelogram();
+            
+            // 创建向量
+            createVectors();
+            
+            // 创建张成平面
+            spanPlane = createSpanPlane();
+            
+            // 添加事件监听器
+            setupEventListeners();
+            
+            // 初始更新
+            updateScene();
+            
+            // 开始动画循环
+            animate();
+        }
+        
+        // 创建坐标轴
+        function createAxes() {
+            const axesHelper = new THREE.AxesHelper(10);
+            // 设置渲染顺序，确保坐标轴在上层
+            axesHelper.renderOrder = 1;
+            scene.add(axesHelper);
+            
+            // 添加坐标轴标签
+            const axisLength = 10.2;
+            
+            // X轴标签
+            const xLabel = create3DLabel('X', new THREE.Vector3(axisLength, 0, 0), '#ff0000');
+            // 设置渲染顺序，确保标签在上层
+            xLabel.renderOrder = 1;
+            scene.add(xLabel);
+            
+            // Y轴标签
+            const yLabel = create3DLabel('Y', new THREE.Vector3(0, axisLength, 0), '#00ff00');
+            // 设置渲染顺序，确保标签在上层
+            yLabel.renderOrder = 1;
+            scene.add(yLabel);
+            
+            // Z轴标签
+            const zLabel = create3DLabel('Z', new THREE.Vector3(0, 0, axisLength), '#0000ff');
+            // 设置渲染顺序，确保标签在上层
+            zLabel.renderOrder = 1;
+            scene.add(zLabel);
+        }
+        
+        // 创建3D标签
+        function create3DLabel(text, position, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            context.fillStyle = 'rgba(0, 0, 0, 0)';
+            context.fillRect(0, 0, 128, 128);
+            context.font = 'Bold 48px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillStyle = color;
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.5, 0.5, 0.5);
+            sprite.position.copy(position);
+            return sprite;
+        }
+        
+        // 创建网格
+        function createGrid() {
+            // 创建一个以1为单位的网格
+            gridHelper = new THREE.Group();
+            
+            // 网格范围从-5到10，以1为单位
+            const gridSize = 15;
+            const gridStep = 1;
+            
+            // 创建网格线材质
+            const gridMaterial = new THREE.LineBasicMaterial({ color: gridColor });
+            
+            // 创建XY平面网格线
+            for (let i = -5; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(i, -5, 0),
+                    new THREE.Vector3(i, 10, 0)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-5, i, 0),
+                    new THREE.Vector3(10, i, 0)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            // 创建XZ平面网格线
+            for (let i = -5; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(i, 0, -5),
+                    new THREE.Vector3(i, 0, 10)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-5, 0, i),
+                    new THREE.Vector3(10, 0, i)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            // 创建YZ平面网格线
+            for (let i = -5; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, i, -5),
+                    new THREE.Vector3(0, i, 10)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -5, i),
+                    new THREE.Vector3(0, 10, i)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                // 设置渲染顺序，确保网格线在下层
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            scene.add(gridHelper);
+        }
+        
+        // 创建向量
+        function createVectors() {
+            // 向量α1 (红色)
+            vector1 = createVectorArrow(v1, vector1Color);
+            scene.add(vector1);
+            
+            // 向量α2 (青色)
+            vector2 = createVectorArrow(v2, vector2Color);
+            scene.add(vector2);
+            
+            // 向量v (黄色)
+            vectorV = createVectorArrow(v, vectorVColor);
+            scene.add(vectorV);
+            
+            // 注释掉结果向量 (紫色)
+            // resultVector = createVectorArrow(new THREE.Vector3(0, 0, 0), resultColor);
+            // scene.add(resultVector);
+            
+            // 设置结果向量的初始可见性
+            // resultVector.visible = document.getElementById('show-result').checked;
+        }
+        
+        // 创建向量箭头
+        function createVectorArrow(vector, color) {
+            const group = new THREE.Group();
+            
+            // 箭头杆
+            const direction = vector.clone().normalize();
+            const length = vector.length();
+            
+            // 创建箭头杆
+            // 调整箭头杆长度，使其不超出箭头头部
+            const vectorLength = vector.length();
+            const adjustedVector = vector.clone().normalize().multiplyScalar(Math.max(0, vectorLength - 0.2));
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(adjustedVector.x, adjustedVector.y, adjustedVector.z)
+            ]);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            // 设置渲染顺序，确保向量在上层
+            line.renderOrder = 1;
+            group.add(line);
+            
+            // 创建箭头头部
+            // 调整长度以确保箭头头部正好落在目标点上
+            const adjustedLength = Math.max(0, length - 0.2); // 减去箭头头部的长度
+            const arrowHelper = new THREE.ArrowHelper(direction, new THREE.Vector3(0, 0, 0), adjustedLength, color, 0.4, 0.2);
+            // 设置渲染顺序，确保向量在上层
+            arrowHelper.renderOrder = 1;
+            group.add(arrowHelper);
+            
+            // 添加标签
+            const label = createVectorLabel(vector, color);
+            group.add(label);
+            
+            return group;
+        }
+        
+        // 创建向量标签
+        function createVectorLabel(vector, color) {
+            // 根据向量确定标签文本
+            let text = '';
+            if (vector.equals(v1)) {
+                text = 'α₁';
+            } else if (vector.equals(v2)) {
+                text = 'α₂';
+            } else if (vector.equals(v)) {
+                text = 'β';
+            } else {
+                return new THREE.Group(); // 不为结果向量创建标签
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            context.fillStyle = 'rgba(0, 0, 0, 0)';
+            context.fillRect(0, 0, 128, 128);
+            context.font = 'Bold 48px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillStyle = '#' + color.toString(16).padStart(6, '0');
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.8, 0.8, 0.8);
+            // 设置渲染顺序，确保标签在上层
+            sprite.renderOrder = 1;
+            
+            // 将标签位置调整到向量末端附近，基于向量长度进行调整
+            // 使用固定的偏移量而不是比例因子，确保标签不会延伸到下一个网格单位
+            const vectorLength = vector.length();
+            const offset = 0.15; // 固定偏移量
+            const direction = vector.clone().normalize();
+            const labelPosition = vector.clone().add(direction.multiplyScalar(offset));
+            sprite.position.copy(labelPosition);
+            
+            return sprite;
+        }
+        
+        // 创建平行四边形
+        function createParallelogram() {
+            // 创建一个透明的平行四边形来表示向量张成的区域
+            // 初始时使用单位向量创建几何体
+            const geometry = new THREE.BufferGeometry();
+            const vertices = new Float32Array([
+                0, 0, 0,
+                1, 0, 0,
+                1, 1, 0,
+                0, 1, 0
+            ]);
+            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x6a0572,
+                opacity: 0.3,
+                transparent: true,
+                wireframe: true,
+                side: THREE.DoubleSide
+            });
+            
+            parallelepiped = new THREE.Mesh(geometry, material);
+            scene.add(parallelepiped);
+        }
+        
+        // 创建向量张成平面
+        function createSpanPlane() {
+            // 创建一个表示α1和α2张成平面的实体平面
+            
+            // 定义平面的范围，减小以避免过大
+            const range = 1; // 减小范围，使平面更小
+            
+            // 创建四个顶点来定义平面
+            const vertices = [
+                // 从(-range, -range)到(range, range)的矩形
+                new THREE.Vector3(-range * v1.x - range * v2.x, -range * v1.y - range * v2.y, -range * v1.z - range * v2.z),
+                new THREE.Vector3(range * v1.x - range * v2.x, range * v1.y - range * v2.y, range * v1.z - range * v2.z),
+                new THREE.Vector3(range * v1.x + range * v2.x, range * v1.y + range * v2.y, range * v1.z + range * v2.z),
+                new THREE.Vector3(-range * v1.x + range * v2.x, -range * v1.y + range * v2.y, -range * v1.z + range * v2.z)
+            ];
+            
+            // 创建平面几何体
+            const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
+            
+            // 添加面索引
+            const indices = [
+                0, 1, 2,
+                0, 2, 3
+            ];
+            geometry.setIndex(indices);
+            
+            // 计算法向量
+            geometry.computeVertexNormals();
+            
+            // 创建更突出的材质
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xffa500, // 橙色，更突出
+                opacity: 0.3, // 降低透明度使颜色更明显但不影响向量展示
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            // 创建网格
+            const plane = new THREE.Mesh(geometry, material);
+            
+            // 设置渲染顺序，确保向量在上层
+            plane.renderOrder = 0;
+            
+            // 添加到场景
+            scene.add(plane);
+            
+            return plane;
+        }
+        
+        // 更新场景
+        function updateScene() {
+            // 获取当前系数
+            // coeff1 = parseFloat(document.getElementById('coeff1').value);
+            // coeff2 = parseFloat(document.getElementById('coeff2').value);
+            
+            // 更新滑块值显示
+            // document.getElementById('coeff1-value').textContent = coeff1.toFixed(1);
+            // document.getElementById('coeff2-value').textContent = coeff2.toFixed(1);
+            
+            // 计算线性组合结果
+            // const result = new THREE.Vector3(
+            //     coeff1 * v1.x + coeff2 * v2.x,
+            //     coeff1 * v1.y + coeff2 * v2.y,
+            //     coeff1 * v1.z + coeff2 * v2.z
+            // );
+            
+            // 更新结果向量
+            // updateVectorArrow(resultVector, result, resultColor);
+            
+            // 更新平行四边形
+            updateParallelogram();
+            
+            // 更新数学表达式
+            // updateEquationDisplay(result);
+        }
+        
+        // 更新向量箭头
+        function updateVectorArrow(arrowGroup, vector, color) {
+            // 移除旧的箭头和标签
+            while(arrowGroup.children.length > 0) {
+                arrowGroup.remove(arrowGroup.children[0]);
+            }
+            
+            // 如果向量不为零向量，则创建新箭头
+            if (vector.length() > 0.01) {
+                // 创建箭头杆和箭头头部
+                const direction = vector.clone().normalize();
+                const length = vector.length();
+                // 调整长度以确保箭头头部正好落在目标点上
+                const adjustedLength = Math.max(0, length - 0.2); // 减去箭头头部的长度
+                
+                // 创建箭头杆
+                const adjustedVector = vector.clone().normalize().multiplyScalar(adjustedLength);
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(adjustedVector.x, adjustedVector.y, adjustedVector.z)
+                ]);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                arrowGroup.add(line);
+                
+                // 创建箭头头部
+                const arrowHelper = new THREE.ArrowHelper(direction, new THREE.Vector3(0, 0, 0), adjustedLength, color, 0.4, 0.2);
+                arrowGroup.add(arrowHelper);
+            } else {
+                // 即使向量为零，也添加一个非常小的点来表示向量存在
+                const dotGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0)]);
+                const dotMaterial = new THREE.PointsMaterial({ color: color, size: 0.1 });
+                const dot = new THREE.Points(dotGeometry, dotMaterial);
+                arrowGroup.add(dot);
+            }
+        }
+        
+        // 更新平行四边形
+        function updateParallelogram() {
+            // 计算两个向量系数倍的终点
+            const v1End = new THREE.Vector3(coeff1 * v1.x, coeff1 * v1.y, coeff1 * v1.z);
+            const v2End = new THREE.Vector3(coeff2 * v2.x, coeff2 * v2.y, coeff2 * v2.z);
+            
+            // 计算其他顶点
+            const v1v2 = new THREE.Vector3(v1End.x + v2End.x, v1End.y + v2End.y, v1End.z + v2End.z);
+            
+            // 更新平行四边形的顶点
+            const vertices = new Float32Array([
+                // 四边形的四个顶点
+                0, 0, 0,
+                v1End.x, v1End.y, v1End.z,
+                v1v2.x, v1v2.y, v1v2.z,
+                v2End.x, v2End.y, v2End.z
+            ]);
+            
+            // 更新几何体
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            
+            // 替换旧几何体
+            parallelepiped.geometry.dispose();
+            parallelepiped.geometry = geometry;
+            
+            // 设置可见性
+            // parallelepiped.visible = document.getElementById('show-parallelepiped').checked;
+        }
+        
+        // 更新数学表达式显示
+        function updateEquationDisplay(result) {
+            const equationElement = document.getElementById('current-equation');
+            equationElement.innerHTML = `
+                ${coeff1.toFixed(1)}·α₁ + ${coeff2.toFixed(1)}·α₂ =<br>
+                (${result.x.toFixed(2)}, ${result.y.toFixed(2)}, ${result.z.toFixed(2)})
+            `;
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 滑块事件
+            // document.getElementById('coeff1').addEventListener('input', updateScene);
+            // document.getElementById('coeff2').addEventListener('input', updateScene);
+            
+            // 复选框事件
+            // document.getElementById('show-result').addEventListener('change', function() {
+            //     if (resultVector) {
+            //         resultVector.visible = this.checked;
+            //     }
+            // });
+            
+            // document.getElementById('show-parallelepiped').addEventListener('change', function() {
+            //     if (parallelepiped) {
+            //         parallelepiped.visible = this.checked;
+            //     }
+            // });
+            
+            document.getElementById('show-grid').addEventListener('change', function() {
+                if (gridHelper) {
+                    gridHelper.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('auto-rotate').addEventListener('change', function() {
+                autoRotate = this.checked;
+            });
+            
+            document.getElementById('show-span-plane').addEventListener('change', function() {
+                if (spanPlane) {
+                    spanPlane.visible = this.checked;
+                }
+            });
+            
+            const canvas = renderer.domElement;
+            
+            // 鼠标事件用于旋转
+            canvas.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                previousMousePosition = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            });
+            
+            canvas.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    // 逆时针旋转 (调慢速度)
+                    cameraAngleX -= deltaX * 0.005;
+                    cameraAngleY += deltaY * 0.005;
+                    
+                    // 限制Y轴旋转角度
+                    cameraAngleY = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraAngleY));
+                    
+                    previousMousePosition = {
+                        x: e.clientX,
+                        y: e.clientY
+                    };
+                }
+            });
+            
+            canvas.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mouseleave', function() {
+                isDragging = false;
+            });
+            
+            // 缩放控制
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                targetZoom += e.deltaY * 0.01;
+                targetZoom = Math.max(5, Math.min(30, targetZoom));
+            });
+            
+            // 重置视图
+            canvas.addEventListener('dblclick', function() {
+                targetZoom = 15;
+                cameraAngleX = 0;
+                cameraAngleY = 0;
+                // 重置相机位置和方向
+                camera.position.set(20, 0, 0);
+                camera.lookAt(0, 0, 0);
+                camera.up.set(0, 0, 1);
+            });
+            
+            // 窗口大小调整
+            window.addEventListener('resize', function() {
+                const container = document.querySelector('.visualization-container');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 自动旋转 - 逆时针 (调慢速度)
+            if (autoRotate && !isDragging) {
+                cameraAngleX -= 0.002;
+            }
+            
+            // 平滑缩放
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+            
+            // 更新相机位置 - 保持X轴朝向屏幕的视角，同时支持旋转
+            const radius = currentZoom;
+            // 根据角度计算相机位置，使X轴朝向屏幕
+            const x = radius * Math.cos(cameraAngleY) * Math.cos(cameraAngleX);
+            const y = radius * Math.cos(cameraAngleY) * Math.sin(cameraAngleX);
+            const z = radius * Math.sin(cameraAngleY);
+            
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+            // 保持Z轴向上
+            camera.up.set(0, 0, 1);
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>

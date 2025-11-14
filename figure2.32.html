@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>异面直线可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #aaccff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .content-container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 20px;
+        }
+        
+        .controls {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #aaccff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+        }
+        
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            width: 40px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 10px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+        
+        .visualization-container {
+            flex: 1;
+            height: 70vh;
+            min-height: 500px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        
+        .line1-color { background: #ff6b6b; }
+        .line2-color { background: #4ecdc4; }
+        .common-perpendicular-color { background: #ffd166; }
+        .plane1-color { background: #ff9f9f; } /* L1与公垂线张成的平面 */
+        .plane2-color { background: #a8e6e0; } /* L2与公垂线张成的平面 */
+        
+        .math-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 250px;
+        }
+        
+        .math-info h3 {
+            color: #ffd166;
+            margin-bottom: 10px;
+        }
+        
+        .equation {
+            font-family: 'Cambria Math', serif;
+            font-size: 18px;
+            margin: 8px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 1000px) {
+            .content-container {
+                flex-direction: column;
+            }
+            
+            .controls {
+                width: 100%;
+            }
+            
+            .visualization-container {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>异面直线可视化</h1>
+        <p>可视化两条异面直线 L₁ 和 L₂ 及其公垂线</p>
+    </div>
+    
+    <div class="content-container">
+        <div class="controls">
+            <!-- <div class="control-group">
+                <h3>参数控制</h3>
+                <div class="slider-container">
+                    <label for="param1">L₁ 参数 t:</label>
+                    <input type="range" id="param1" min="-5" max="5" step="0.1" value="0">
+                    <span class="slider-value" id="param1-value">0.0</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="param2">L₂ 参数 s:</label>
+                    <input type="range" id="param2" min="-5" max="5" step="0.1" value="0">
+                    <span class="slider-value" id="param2-value">0.0</span>
+                </div>
+            </div> -->
+            
+            <div class="control-group">
+                <h3>显示控制</h3>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-line1" checked>
+                    <label for="show-line1">显示直线 L₁</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-line2" checked>
+                    <label for="show-line2">显示直线 L₂</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-common-perpendicular" checked>
+                    <label for="show-common-perpendicular">显示公垂线</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-plane1" checked>
+                    <label for="show-plane1">显示L₁与公垂线张成平面</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-plane2" checked>
+                    <label for="show-plane2">显示L₂与公垂线张成平面</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-grid" checked>
+                    <label for="show-grid">显示网格</label>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="auto-rotate" checked>
+                    <label for="auto-rotate">自动旋转</label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>直线信息</h3>
+                <p>L₁: x = y/2 = z/3</p>
+                <p>L₂: (x-1) = (y+1) = (z-2)</p>
+                <p>公垂线长度: <span id="perpendicular-length">2.24</span></p>
+            </div>
+        </div>
+        
+        <div class="visualization-container">
+            <div id="canvas-container"></div>
+            <div class="info-panel">
+                <p>提示: 按住鼠标左键拖拽旋转视角</p>
+                <p>滚轮缩放 | 双击重置视图</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color line1-color"></div>直线 L₁</div>
+                <div class="legend-item"><div class="legend-color line2-color"></div>直线 L₂</div>
+                <div class="legend-item"><div class="legend-color common-perpendicular-color"></div>公垂线</div>
+                <div class="legend-item"><div class="legend-color plane1-color"></div>L₁与公垂线张成平面</div>
+                <div class="legend-item"><div class="legend-color plane2-color"></div>L₂与公垂线张成平面</div>
+            </div>
+            <div class="math-info">
+                <h3>直线方程</h3>
+                <div class="equation">L₁: x = y/2 = z/3</div>
+                <div class="equation">L₂: (x-1) = (y+1) = (z-2)</div>
+                <h3 style="margin-top: 15px;">公垂线方程</h3>
+                <div class="equation" id="perpendicular-equation">L: (x-1/2)/(-1) = (y-1)/2 = (z-3/2)/(-1)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>异面直线可视化 | 解析几何教学工具</p>
+    </div>
+
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer;
+        let line1, line2, commonPerpendicular;
+        let plane1, plane2; // 新增的两个平面
+        let gridHelper;
+        
+        // 直线参数
+        let param1 = 0;
+        let param2 = 0;
+        
+        // 颜色定义
+        const line1Color = 0xff6b6b; // 红色
+        const line2Color = 0x4ecdc4; // 青色
+        const commonPerpendicularColor = 0xffd166; // 黄色
+        const plane1Color = 0xff9f9f; // L1与公垂线张成平面颜色
+        const plane2Color = 0xa8e6e0; // L2与公垂线张成平面颜色
+        const gridColor = 0x444444; // 网格颜色
+        
+        // 旋转控制
+        let autoRotate = true;
+        let isDragging = false;
+        let previousMousePosition = {
+            x: 0,
+            y: 0
+        };
+        
+        // 相机控制
+        let targetZoom = 20;
+        let currentZoom = 20;
+        let cameraAngleX = 0;
+        let cameraAngleY = 0;
+        
+        // 初始化场景
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c2c);
+            
+            // 创建相机
+            const container = document.querySelector('.visualization-container');
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(20, 0, 0);
+            camera.up.set(0, 0, 1);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight1.position.set(1, 1, 1);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight2.position.set(-1, -1, -1);
+            scene.add(directionalLight2);
+            
+            // 创建坐标轴
+            createAxes();
+            
+            // 创建网格
+            createGrid();
+            
+            // 创建直线
+            createLines();
+            
+            // 创建公垂线
+            createCommonPerpendicular();
+            
+            // 创建两个张成平面
+            createSpanPlanes();
+            
+            // 添加事件监听器
+            setupEventListeners();
+            
+            // 初始更新
+            updateScene();
+            
+            // 开始动画循环
+            animate();
+        }
+        
+        // 创建坐标轴
+        function createAxes() {
+            const axesHelper = new THREE.AxesHelper(10);
+            axesHelper.renderOrder = 1;
+            scene.add(axesHelper);
+            
+            // 添加坐标轴标签
+            const axisLength = 10.2;
+            
+            // X轴标签
+            const xLabel = create3DLabel('X', new THREE.Vector3(axisLength, 0, 0), '#ff0000');
+            xLabel.renderOrder = 1;
+            scene.add(xLabel);
+            
+            // Y轴标签
+            const yLabel = create3DLabel('Y', new THREE.Vector3(0, axisLength, 0), '#00ff00');
+            yLabel.renderOrder = 1;
+            scene.add(yLabel);
+            
+            // Z轴标签
+            const zLabel = create3DLabel('Z', new THREE.Vector3(0, 0, axisLength), '#0000ff');
+            zLabel.renderOrder = 1;
+            scene.add(zLabel);
+        }
+        
+        // 创建3D标签
+        function create3DLabel(text, position, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            context.fillStyle = 'rgba(0, 0, 0, 0)';
+            context.fillRect(0, 0, 128, 128);
+            context.font = 'Bold 48px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillStyle = color;
+            context.fillText(text, 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.5, 0.5, 0.5);
+            sprite.position.copy(position);
+            return sprite;
+        }
+        
+        // 创建网格
+        function createGrid() {
+            gridHelper = new THREE.Group();
+            
+            // 创建网格线材质
+            const gridMaterial = new THREE.LineBasicMaterial({ color: gridColor });
+            
+            // 创建XY平面网格线
+            for (let i = -10; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(i, -10, 0),
+                    new THREE.Vector3(i, 10, 0)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-10, i, 0),
+                    new THREE.Vector3(10, i, 0)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            // 创建XZ平面网格线
+            for (let i = -10; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(i, 0, -10),
+                    new THREE.Vector3(i, 0, 10)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-10, 0, i),
+                    new THREE.Vector3(10, 0, i)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            // 创建YZ平面网格线
+            for (let i = -10; i <= 10; i++) {
+                // 垂直线条
+                const verticalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, i, -10),
+                    new THREE.Vector3(0, i, 10)
+                ]);
+                const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+                verticalLine.renderOrder = 0;
+                gridHelper.add(verticalLine);
+                
+                // 水平线条
+                const horizontalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -10, i),
+                    new THREE.Vector3(0, 10, i)
+                ]);
+                const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+                horizontalLine.renderOrder = 0;
+                gridHelper.add(horizontalLine);
+            }
+            
+            scene.add(gridHelper);
+        }
+        
+        // 创建直线
+        function createLines() {
+            // 直线L1: x = y/2 = z/3
+            // 参数方程: x = t, y = 2t, z = 3t
+            const points1 = [];
+            // 限制直线在网格边界内 (-10 到 10)
+            for (let t = -10; t <= 10; t += 0.1) {
+                const x = t;
+                const y = 2 * t;
+                const z = 3 * t;
+                // 检查点是否在边界内
+                if (x >= -10 && x <= 10 && y >= -10 && y <= 10 && z >= -10 && z <= 10) {
+                    points1.push(new THREE.Vector3(x, y, z));
+                }
+            }
+            const geometry1 = new THREE.BufferGeometry().setFromPoints(points1);
+            const material1 = new THREE.LineBasicMaterial({ color: line1Color, linewidth: 2 });
+            line1 = new THREE.Line(geometry1, material1);
+            scene.add(line1);
+            
+            // 直线L2: (x-1) = (y+1) = (z-2)
+            // 参数方程: x = 1 + s, y = -1 + s, z = 2 + s
+            const points2 = [];
+            // 限制直线在网格边界内 (-10 到 10)
+            for (let s = -10; s <= 10; s += 0.1) {
+                const x = 1 + s;
+                const y = -1 + s;
+                const z = 2 + s;
+                // 检查点是否在边界内
+                if (x >= -10 && x <= 10 && y >= -10 && y <= 10 && z >= -10 && z <= 10) {
+                    points2.push(new THREE.Vector3(x, y, z));
+                }
+            }
+            const geometry2 = new THREE.BufferGeometry().setFromPoints(points2);
+            const material2 = new THREE.LineBasicMaterial({ color: line2Color, linewidth: 2 });
+            line2 = new THREE.Line(geometry2, material2);
+            scene.add(line2);
+        }
+        
+        // 创建公垂线
+        function createCommonPerpendicular() {
+            // 计算公垂线
+            const points = calculateCommonPerpendicular();
+            
+            // 公垂线应该连接两个平面，所以我们稍微延长它以确保与平面相交
+            const startPoint = points[0];
+            const endPoint = points[1];
+            
+            // L1和L2的方向向量
+            const dir1 = new THREE.Vector3(1, 2, 3);
+            const dir2 = new THREE.Vector3(1, 1, 1);
+            
+            // 公垂线方向向量
+            const perpDir = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
+            
+            // 减少公垂线的延长长度，与缩小后的平面更协调
+            const extendedStart = startPoint.clone().sub(perpDir.clone().multiplyScalar(1));
+            const extendedEnd = endPoint.clone().add(perpDir.clone().multiplyScalar(1));
+            
+            const extendedPoints = [extendedStart, extendedEnd];
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(extendedPoints);
+            const material = new THREE.LineBasicMaterial({ color: commonPerpendicularColor, linewidth: 3 });
+            commonPerpendicular = new THREE.Line(geometry, material);
+            scene.add(commonPerpendicular);
+        }
+        
+        // 创建两个张成平面
+        function createSpanPlanes() {
+            // 计算公垂线的两个端点
+            const points = calculateCommonPerpendicular();
+            const point1 = points[0]; // L1上的点
+            const point2 = points[1]; // L2上的点
+            
+            // L1的方向向量
+            const dir1 = new THREE.Vector3(1, 2, 3);
+            // 公垂线的方向向量
+            const dirPerp = new THREE.Vector3().subVectors(point2, point1);
+            
+            // 创建L1与公垂线张成的平面 (plane1)
+            // 调整平面构造方式，确保包含完整的L1直线
+            createSpanPlaneWithLine(point1, dir1, dirPerp, plane1Color, "plane1");
+            
+            // L2的方向向量
+            const dir2 = new THREE.Vector3(1, 1, 1);
+            
+            // 创建L2与公垂线张成的平面 (plane2)
+            createSpanPlaneWithLine(point2, dir2, dirPerp, plane2Color, "plane2");
+        }
+        
+        // 创建包含完整直线的张成平面
+        function createSpanPlaneWithLine(origin, lineDir, perpDir, color, planeName) {
+            // 创建四个顶点来定义平面
+            const vertices = [];
+            const range = 2; // 减小平面大小
+            
+            // 为了确保平面包含完整的L1直线，我们需要在直线方向上扩展更多
+            // 并且在负方向也要扩展，以确保包含直线的向下部分
+            const negativeRange = 2; // 减小负方向范围
+            const positiveRange = 2; // 减小正方向范围
+            
+            // 计算四个顶点
+            // p0: origin - negativeRange*lineDir - negativeRange*perpDir
+            const p0 = origin.clone().sub(lineDir.clone().multiplyScalar(negativeRange)).sub(perpDir.clone().multiplyScalar(negativeRange));
+            // p1: origin + positiveRange*lineDir - negativeRange*perpDir
+            const p1 = origin.clone().add(lineDir.clone().multiplyScalar(positiveRange)).sub(perpDir.clone().multiplyScalar(negativeRange));
+            // p2: origin + positiveRange*lineDir + positiveRange*perpDir
+            const p2 = origin.clone().add(lineDir.clone().multiplyScalar(positiveRange)).add(perpDir.clone().multiplyScalar(positiveRange));
+            // p3: origin - negativeRange*lineDir + positiveRange*perpDir
+            const p3 = origin.clone().sub(lineDir.clone().multiplyScalar(negativeRange)).add(perpDir.clone().multiplyScalar(positiveRange));
+            
+            vertices.push(p0, p1, p2, p3);
+            
+            // 创建平面几何体
+            const geometry = new THREE.BufferGeometry().setFromPoints(vertices);
+            
+            // 添加面索引
+            const indices = [
+                0, 1, 2,
+                0, 2, 3
+            ];
+            geometry.setIndex(indices);
+            
+            // 计算法向量
+            geometry.computeVertexNormals();
+            
+            // 创建材质
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                opacity: 0.4,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            // 创建网格
+            const plane = new THREE.Mesh(geometry, material);
+            
+            // 添加到场景
+            scene.add(plane);
+            
+            // 根据平面名称保存引用
+            if (planeName === "plane1") {
+                plane1 = plane;
+            } else if (planeName === "plane2") {
+                plane2 = plane;
+            }
+        }
+        
+        // 计算公垂线
+        function calculateCommonPerpendicular() {
+            // L1: P1(t) = (t, 2t, 3t)
+            // L2: P2(s) = (1+s, -1+s, 2+s)
+            // 方向向量: d1 = (1, 2, 3), d2 = (1, 1, 1)
+            
+            // 公垂线向量: d1 × d2 = (2*1-3*1, 3*1-1*1, 1*1-2*1) = (-1, 2, -1)
+            // 公垂线长度: |d1 × d2| = √(1+4+1) = √6
+            
+            // 两点间向量: P2(0) - P1(0) = (1, -1, 2)
+            // 公垂线长度 = |(P2(0) - P1(0)) · (d1 × d2)| / |d1 × d2|
+            // = |(1, -1, 2) · (-1, 2, -1)| / √6
+            // = |1*(-1) + (-1)*2 + 2*(-1)| / √6
+            // = |-1 -2 -2| / √6
+            // = 5 / √6
+            
+            // 公垂线的两个端点
+            // 通过求解方程组找到最近点
+            // (P1(t) - P2(s)) ⊥ d1  =>  (t-(1+s), 2t-(-1+s), 3t-(2+s)) · (1,2,3) = 0
+            // (P1(t) - P2(s)) ⊥ d2  =>  (t-(1+s), 2t-(-1+s), 3t-(2+s)) · (1,1,1) = 0
+            
+            // 展开方程:
+            // (t-1-s) + 2(2t+1-s) + 3(3t-2-s) = 0
+            // (t-1-s) + (2t+1-s) + (3t-2-s) = 0
+            
+            // 方程1: t-1-s + 4t+2-2s + 9t-6-3s = 0  =>  14t - 6s -5 = 0
+            // 方程2: t-1-s + 2t+1-s + 3t-2-s = 0    =>  6t - 3s -2 = 0
+            
+            // 解方程组:
+            // 14t - 6s = 5  ... (1)
+            // 6t - 3s = 2   ... (2)
+            
+            // 从方程(2): 3s = 6t - 2  =>  s = 2t - 2/3
+            // 代入方程(1): 14t - 6(2t - 2/3) = 5
+            // 14t - 12t + 4 = 5
+            // 2t = 1  =>  t = 1/2
+            // s = 2*(1/2) - 2/3 = 1 - 2/3 = 1/3
+            
+            // 最近点:
+            // L1上的点: P1(1/2) = (1/2, 1, 3/2)
+            // L2上的点: P2(1/3) = (1+1/3, -1+1/3, 2+1/3) = (4/3, -2/3, 7/3)
+            
+            const t = 0.5;
+            const s = 1/3;
+            
+            const point1 = new THREE.Vector3(t, 2 * t, 3 * t);
+            const point2 = new THREE.Vector3(1 + s, -1 + s, 2 + s);
+            
+            return [point1, point2];
+        }
+        
+        // 更新场景
+        function updateScene() {
+            // 获取当前参数
+            // param1 = parseFloat(document.getElementById('param1').value);
+            // param2 = parseFloat(document.getElementById('param2').value);
+            
+            // 更新滑块值显示
+            // document.getElementById('param1-value').textContent = param1.toFixed(1);
+            // document.getElementById('param2-value').textContent = param2.toFixed(1);
+            
+            // 更新公垂线
+            updateCommonPerpendicular();
+            
+            // 更新公垂线长度显示
+            updatePerpendicularLength();
+            
+            // 更新公垂线方程显示
+            updatePerpendicularEquation();
+        }
+        
+        // 更新公垂线方程显示
+        function updatePerpendicularEquation() {
+            const points = calculateCommonPerpendicular();
+            const point1 = points[0]; // L1上的点 (1/2, 1, 3/2)
+            const dirPerp = new THREE.Vector3(-1, 2, -1); // 公垂线方向向量
+            
+            // 公垂线方程: (x-x0)/a = (y-y0)/b = (z-z0)/c
+            const equationElement = document.getElementById('perpendicular-equation');
+            equationElement.innerHTML = `L: (x-${point1.x.toFixed(1)})/(${dirPerp.x}) = (y-${point1.y.toFixed(1)})/${dirPerp.y} = (z-${point1.z.toFixed(1)})/${dirPerp.z}`;
+        }
+        
+        // 更新公垂线
+        function updateCommonPerpendicular() {
+            // 移除旧的公垂线
+            if (commonPerpendicular) {
+                scene.remove(commonPerpendicular);
+            }
+            
+            // 创建新的公垂线
+            createCommonPerpendicular();
+        }
+        
+        // 更新公垂线长度显示
+        function updatePerpendicularLength() {
+            const points = calculateCommonPerpendicular();
+            const length = points[0].distanceTo(points[1]);
+            document.getElementById('perpendicular-length').textContent = length.toFixed(2);
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 滑块事件
+            // document.getElementById('param1').addEventListener('input', updateScene);
+            // document.getElementById('param2').addEventListener('input', updateScene);
+            
+            // 复选框事件
+            document.getElementById('show-line1').addEventListener('change', function() {
+                if (line1) {
+                    line1.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('show-line2').addEventListener('change', function() {
+                if (line2) {
+                    line2.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('show-common-perpendicular').addEventListener('change', function() {
+                if (commonPerpendicular) {
+                    commonPerpendicular.visible = this.checked;
+                }
+            });
+            
+            // 新增的平面显示控制
+            document.getElementById('show-plane1').addEventListener('change', function() {
+                if (plane1) {
+                    plane1.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('show-plane2').addEventListener('change', function() {
+                if (plane2) {
+                    plane2.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('show-grid').addEventListener('change', function() {
+                if (gridHelper) {
+                    gridHelper.visible = this.checked;
+                }
+            });
+            
+            document.getElementById('auto-rotate').addEventListener('change', function() {
+                autoRotate = this.checked;
+            });
+            
+            const canvas = renderer.domElement;
+            
+            // 鼠标事件用于旋转
+            canvas.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                previousMousePosition = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            });
+            
+            canvas.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    // 逆时针旋转 (调慢速度)
+                    cameraAngleX -= deltaX * 0.005;
+                    cameraAngleY += deltaY * 0.005;
+                    
+                    // 限制Y轴旋转角度
+                    cameraAngleY = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraAngleY));
+                    
+                    previousMousePosition = {
+                        x: e.clientX,
+                        y: e.clientY
+                    };
+                }
+            });
+            
+            canvas.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mouseleave', function() {
+                isDragging = false;
+            });
+            
+            // 缩放控制
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                targetZoom += e.deltaY * 0.01;
+                targetZoom = Math.max(5, Math.min(30, targetZoom));
+            });
+            
+            // 重置视图
+            canvas.addEventListener('dblclick', function() {
+                targetZoom = 15;
+                cameraAngleX = 0;
+                cameraAngleY = 0;
+                camera.position.set(20, 0, 0);
+                camera.lookAt(0, 0, 0);
+                camera.up.set(0, 0, 1);
+            });
+            
+            // 窗口大小调整
+            window.addEventListener('resize', function() {
+                const container = document.querySelector('.visualization-container');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 自动旋转 - 逆时针 (调慢速度)
+            if (autoRotate && !isDragging) {
+                cameraAngleX -= 0.002;
+            }
+            
+            // 平滑缩放
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+            
+            // 更新相机位置
+            const radius = currentZoom;
+            const x = radius * Math.cos(cameraAngleY) * Math.cos(cameraAngleX);
+            const y = radius * Math.cos(cameraAngleY) * Math.sin(cameraAngleX);
+            const z = radius * Math.sin(cameraAngleY);
+            
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+            camera.up.set(0, 0, 1);
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
