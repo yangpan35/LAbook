@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>例 2.3.1 平面参数方程可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #aaccff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .content-container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 20px;
+        }
+        .controls {
+            width: 320px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            height: fit-content;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #aaccff;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+        }
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ddd;
+        }
+        .slider-container input[type="range"] {
+            width: 100%;
+        }
+        .slider-value {
+            display: inline-block;
+            width: 50px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 10px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+        .coords-display {
+            background: rgba(0,0,0,0.5);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 15px;
+            color: #ddd;
+        }
+        .coords-display span {
+            color: #ffd166;
+            font-weight: bold;
+        }
+        .visualization-container {
+            flex: 1;
+            height: 70vh;
+            min-height: 500px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        .info-panel {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        .legend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        @media (max-width: 1000px) {
+            .content-container { flex-direction: column; }
+            .controls { width: 100%; }
+            .visualization-container { height: 60vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>例 2.3.1 平面参数方程可视化</h1>
+        <p>拖动滑块 s, t 观察平面上动点 M 的位置</p>
+    </div>
+    
+    <div class="content-container">
+        <div class="controls">
+            <div class="control-group">
+                <h3>平面参数控制</h3>
+                <div class="slider-container">
+                    <label for="slider-s">系数 s：</label>
+                    <input type="range" id="slider-s" min="-3" max="3" step="0.05" value="0.5">
+                    <span class="slider-value" id="s-value">0.50</span>
+                </div>
+                <div class="slider-container">
+                    <label for="slider-t">系数 t：</label>
+                    <input type="range" id="slider-t" min="-3" max="3" step="0.05" value="0.8">
+                    <span class="slider-value" id="t-value">0.80</span>
+                </div>
+                <div class="coords-display">
+                    <p>点 M 坐标：<br>
+                    x = <span id="mx">0.00</span> &nbsp;
+                    y = <span id="my">0.00</span> &nbsp;
+                    z = <span id="mz">0.00</span></p>
+                </div>
+            </div>
+            <div class="control-group">
+                <h3>显示控制</h3>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-grid" checked>
+                    <label for="show-grid">显示网格</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="auto-rotate" checked>
+                    <label for="auto-rotate">自动旋转</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-plane" checked>
+                    <label for="show-plane">显示张成平面</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-vectors" checked>
+                    <label for="show-vectors">显示方向向量</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="show-points" checked>
+                    <label for="show-points">显示三点 M₁, M₂, M₃</label>
+                </div>
+            </div>
+            <div class="control-group">
+                <h3>固定点信息</h3>
+                <p style="font-size:14px;">M₁ (2, -1, 4)</p>
+                <p style="font-size:14px;">M₂ (-1, 3, -2)</p>
+                <p style="font-size:14px;">M₃ (0, 2, 3)</p>
+            </div>
+        </div>
+        
+        <div class="visualization-container">
+            <div id="canvas-container"></div>
+            <div class="info-panel">
+                <p>拖拽旋转 | 滚轮缩放 | 双击重置</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b;"></div> M₁</div>
+                <div class="legend-item"><div class="legend-color" style="background:#4ecdc4;"></div> M₂</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffe66d;"></div> M₃</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffa500;"></div> 动点 M</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff00ff;"></div> 向量 M₁M₂</div>
+                <div class="legend-item"><div class="legend-color" style="background:#00ffff;"></div> 向量 M₁M₃</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffffff;"></div> 向量 M₁M</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>平面向量方程: M = M₁ + s·M₁M₂ + t·M₁M₃  &nbsp;|&nbsp; 线性代数教学工具</p>
+    </div>
+
+    <script>
+        // ==================== 场景与全局变量 ====================
+        let scene, camera, renderer;
+        let gridHelper, spanPlaneMesh, vectorGroup, pointGroup, dynamicGroup;
+        let autoRotate = true, isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+        let targetZoom = 20, currentZoom = 20;
+        let camAngleX = 0, camAngleY = 0;
+
+        // 固定点与向量
+        const M1 = new THREE.Vector3(2, -1, 4);
+        const M2 = new THREE.Vector3(-1, 3, -2);
+        const M3 = new THREE.Vector3(0, 2, 3);
+        const v1 = new THREE.Vector3().copy(M2).sub(M1); // M1M2
+        const v2 = new THREE.Vector3().copy(M3).sub(M1); // M1M3
+
+        // 当前参数
+        let s = 0.5, t = 0.8;
+
+        // 颜色
+        const colorM1 = 0xff6b6b, colorM2 = 0x4ecdc4, colorM3 = 0xffe66d, colorM = 0xffa500;
+        const colorV1 = 0xff00ff, colorV2 = 0x00ffff, colorVM = 0xffffff;
+
+        // ==================== 初始化场景 ====================
+        function init() {
+            const container = document.querySelector('.visualization-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 200);
+            camera.position.set(20, 0, 0);
+            camera.up.set(0, 0, 1);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 光源
+            const ambient = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambient);
+            const d1 = new THREE.DirectionalLight(0xffffff, 1);
+            d1.position.set(1,1,1);
+            scene.add(d1);
+            const d2 = new THREE.DirectionalLight(0xffffff, 0.8);
+            d2.position.set(-1,-1,-1);
+            scene.add(d2);
+
+            // 坐标轴
+            createAxes();
+
+            // 网格
+            createGrid();
+
+            // 张成平面
+            createSpanPlane();
+
+            // 向量和点
+            vectorGroup = new THREE.Group();
+            pointGroup = new THREE.Group();
+            dynamicGroup = new THREE.Group();
+            scene.add(vectorGroup);
+            scene.add(pointGroup);
+            scene.add(dynamicGroup);
+
+            // 创建固定点和向量
+            buildStatic();
+
+            // 创建动态元素（点M和向量M1M）
+            buildDynamic();
+
+            // 事件监听
+            setupEventListeners();
+
+            // 初始更新
+            updateDynamic();
+
+            animate();
+        }
+
+        // ==================== 辅助：创建坐标轴 ====================
+        function createAxes() {
+            const axes = new THREE.AxesHelper(10);
+            axes.renderOrder = 1;
+            scene.add(axes);
+            const len = 10.2;
+            const makeLabel = (text, pos, color, scale=1.0) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128; canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0)';
+                ctx.fillRect(0,0,128,128);
+                ctx.font = 'Bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = color;
+                ctx.fillText(text, 64, 64);
+                const tex = new THREE.CanvasTexture(canvas);
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+                const sprite = new THREE.Sprite(mat);
+                sprite.scale.set(scale, scale, scale);
+                sprite.position.copy(pos);
+                return sprite;
+            };
+            scene.add(makeLabel('X', new THREE.Vector3(len,0,0), '#ff0000', 1.0));
+            scene.add(makeLabel('Y', new THREE.Vector3(0,len,0), '#00ff00', 1.0));
+            scene.add(makeLabel('Z', new THREE.Vector3(0,0,len), '#0000ff', 1.0));
+        }
+
+        // ==================== 创建网格（浅灰） ====================
+        function createGrid() {
+            gridHelper = new THREE.Group();
+            const mat = new THREE.LineBasicMaterial({ color: 0xcccccc });
+            const range = 10;
+            for (let i = -5; i <= 10; i++) {
+                // XY
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i,-5,0), new THREE.Vector3(i,10,0)]), mat));
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-5,i,0), new THREE.Vector3(10,i,0)]), mat));
+                // XZ
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i,0,-5), new THREE.Vector3(i,0,10)]), mat));
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-5,0,i), new THREE.Vector3(10,0,i)]), mat));
+                // YZ
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,i,-5), new THREE.Vector3(0,i,10)]), mat));
+                gridHelper.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-5,i), new THREE.Vector3(0,10,i)]), mat));
+            }
+            scene.add(gridHelper);
+        }
+
+        // ==================== 创建张成平面（半透明，基于M1） ====================
+        function createSpanPlane() {
+            const range = 3.0;
+            const pts = [
+                new THREE.Vector3().copy(M1).add(v1.clone().multiplyScalar(-range)).add(v2.clone().multiplyScalar(-range)),
+                new THREE.Vector3().copy(M1).add(v1.clone().multiplyScalar( range)).add(v2.clone().multiplyScalar(-range)),
+                new THREE.Vector3().copy(M1).add(v1.clone().multiplyScalar( range)).add(v2.clone().multiplyScalar( range)),
+                new THREE.Vector3().copy(M1).add(v1.clone().multiplyScalar(-range)).add(v2.clone().multiplyScalar( range))
+            ];
+            const geom = new THREE.BufferGeometry().setFromPoints(pts);
+            const indices = [0,1,2, 0,2,3];
+            geom.setIndex(indices);
+            geom.computeVertexNormals();
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffa500,
+                opacity: 0.25,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            spanPlaneMesh = new THREE.Mesh(geom, mat);
+            spanPlaneMesh.renderOrder = 0;
+            scene.add(spanPlaneMesh);
+        }
+
+        // ==================== 创建固定点和向量 ====================
+        function buildStatic() {
+            // 清除旧内容
+            while(pointGroup.children.length) pointGroup.remove(pointGroup.children[0]);
+            while(vectorGroup.children.length) vectorGroup.remove(vectorGroup.children[0]);
+
+            // 三点：球体 + 标签
+            const addPoint = (pos, color, label) => {
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16),
+                    new THREE.MeshBasicMaterial({ color }));
+                sphere.position.copy(pos);
+                pointGroup.add(sphere);
+                // 标签
+                const canvas = document.createElement('canvas');
+                canvas.width = 128; canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0)';
+                ctx.fillRect(0,0,128,128);
+                ctx.font = 'Bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#' + color.toString(16).padStart(6,'0');
+                ctx.fillText(label, 64, 64);
+                const tex = new THREE.CanvasTexture(canvas);
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+                const sprite = new THREE.Sprite(mat);
+                sprite.scale.set(1.2, 1.2, 1.2);
+                sprite.position.copy(pos).add(new THREE.Vector3(0.5, 0.5, 0.5));
+                pointGroup.add(sprite);
+            };
+            addPoint(M1, colorM1, 'M₁');
+            addPoint(M2, colorM2, 'M₂');
+            addPoint(M3, colorM3, 'M₃');
+
+            // 向量 M1M2 和 M1M3
+            const makeArrow = (origin, vec, color, label) => {
+                const dir = vec.clone().normalize();
+                const len = vec.length();
+                const arrow = new THREE.ArrowHelper(dir, origin, len, color, 0.8, 0.5);
+                arrow.renderOrder = 1;
+                vectorGroup.add(arrow);
+                // 标签
+                const canvas = document.createElement('canvas');
+                canvas.width = 128; canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0)';
+                ctx.fillRect(0,0,128,128);
+                ctx.font = 'Bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#' + color.toString(16).padStart(6,'0');
+                ctx.fillText(label, 64, 64);
+                const tex = new THREE.CanvasTexture(canvas);
+                const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+                const sprite = new THREE.Sprite(mat);
+                sprite.scale.set(1.2, 1.2, 1.2);
+                const mid = new THREE.Vector3().copy(origin).add(vec.clone().multiplyScalar(0.5));
+                sprite.position.copy(mid);
+                vectorGroup.add(sprite);
+            };
+            makeArrow(M1, v1, colorV1, 'M₁M₂');
+            makeArrow(M1, v2, colorV2, 'M₁M₃');
+        }
+
+        // ==================== 动态元素（动点M和向量M1M） ====================
+        function buildDynamic() {
+            // 清空
+            while(dynamicGroup.children.length) dynamicGroup.remove(dynamicGroup.children[0]);
+            // 动点 M 的球体
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 20),
+                new THREE.MeshBasicMaterial({ color: colorM }));
+            sphere.name = 'pointM';
+            dynamicGroup.add(sphere);
+            // 标签 M
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0)';
+            ctx.fillRect(0,0,128,128);
+            ctx.font = 'Bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffa500';
+            ctx.fillText('M', 64, 64);
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(1.5, 1.5, 1.5);
+            sprite.name = 'labelM';
+            dynamicGroup.add(sprite);
+            // 向量 M1M (箭头)
+            const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), M1, 1, colorVM, 0.8, 0.5);
+            arrow.name = 'arrowM';
+            dynamicGroup.add(arrow);
+        }
+
+        function updateDynamic() {
+            // 计算点 M
+            const M = new THREE.Vector3().copy(M1).add(v1.clone().multiplyScalar(s)).add(v2.clone().multiplyScalar(t));
+            // 更新球体
+            const sphere = dynamicGroup.getObjectByName('pointM');
+            if (sphere) sphere.position.copy(M);
+            // 更新标签
+            const label = dynamicGroup.getObjectByName('labelM');
+            if (label) label.position.copy(M).add(new THREE.Vector3(0.6, 0.6, 0.6));
+            // 更新箭头
+            const arrow = dynamicGroup.getObjectByName('arrowM');
+            if (arrow) {
+                const dir = M.clone().sub(M1);
+                const len = dir.length();
+                if (len > 0.01) {
+                    arrow.setDirection(dir.clone().normalize());
+                    arrow.setLength(len, 0.8, 0.5);
+                    arrow.visible = true;
+                } else {
+                    arrow.visible = false;
+                }
+            }
+            // 更新坐标显示
+            document.getElementById('mx').textContent = M.x.toFixed(2);
+            document.getElementById('my').textContent = M.y.toFixed(2);
+            document.getElementById('mz').textContent = M.z.toFixed(2);
+        }
+
+        // ==================== 事件监听 ====================
+        function setupEventListeners() {
+            const sSlider = document.getElementById('slider-s');
+            const tSlider = document.getElementById('slider-t');
+            const sVal = document.getElementById('s-value');
+            const tVal = document.getElementById('t-value');
+
+            sSlider.addEventListener('input', function() {
+                s = parseFloat(this.value);
+                sVal.textContent = s.toFixed(2);
+                updateDynamic();
+            });
+            tSlider.addEventListener('input', function() {
+                t = parseFloat(this.value);
+                tVal.textContent = t.toFixed(2);
+                updateDynamic();
+            });
+
+            document.getElementById('show-grid').addEventListener('change', function() {
+                if (gridHelper) gridHelper.visible = this.checked;
+            });
+            document.getElementById('auto-rotate').addEventListener('change', function() {
+                autoRotate = this.checked;
+            });
+            document.getElementById('show-plane').addEventListener('change', function() {
+                if (spanPlaneMesh) spanPlaneMesh.visible = this.checked;
+            });
+            document.getElementById('show-vectors').addEventListener('change', function() {
+                if (vectorGroup) vectorGroup.visible = this.checked;
+            });
+            document.getElementById('show-points').addEventListener('change', function() {
+                if (pointGroup) pointGroup.visible = this.checked;
+            });
+
+            const canvas = renderer.domElement;
+            canvas.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            });
+            canvas.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    const dx = e.clientX - prevMouse.x;
+                    const dy = e.clientY - prevMouse.y;
+                    camAngleX -= dx * 0.005;
+                    camAngleY += dy * 0.005;
+                    camAngleY = Math.max(-Math.PI/2, Math.min(Math.PI/2, camAngleY));
+                    prevMouse = { x: e.clientX, y: e.clientY };
+                }
+            });
+            canvas.addEventListener('mouseup', function() { isDragging = false; });
+            canvas.addEventListener('mouseleave', function() { isDragging = false; });
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                targetZoom += e.deltaY * 0.01;
+                targetZoom = Math.max(5, Math.min(30, targetZoom));
+            });
+            canvas.addEventListener('dblclick', function() {
+                targetZoom = 20;
+                camAngleX = 0; camAngleY = 0;
+                camera.position.set(20, 0, 0);
+                camera.lookAt(0,0,0);
+                camera.up.set(0,0,1);
+            });
+            window.addEventListener('resize', function() {
+                const container = document.querySelector('.visualization-container');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+
+            // 初始触发显示
+            updateDynamic();
+        }
+
+        // ==================== 动画循环 ====================
+        function animate() {
+            requestAnimationFrame(animate);
+            if (autoRotate && !isDragging) {
+                camAngleX -= 0.002;
+            }
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+            const radius = currentZoom;
+            const x = radius * Math.cos(camAngleY) * Math.cos(camAngleX);
+            const y = radius * Math.cos(camAngleY) * Math.sin(camAngleX);
+            const z = radius * Math.sin(camAngleY);
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+            camera.up.set(0, 0, 1);
+            renderer.render(scene, camera);
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>
