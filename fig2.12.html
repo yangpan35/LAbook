@@ -6,1018 +6,558 @@
     <title>二维向量张成空间可视化 - 带网格控制</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0c1a3a, #152c57);
-            color: #fff;
-            min-height: 100vh;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            text-align: center;
-            padding: 20px;
-            background: rgba(0, 20, 40, 0.85);
-            border-bottom: 1px solid rgba(100, 180, 255, 0.3);
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-        }
-        
-        .header h1 {
-            font-size: 2.4rem;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #ffffff, #aaccff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-            letter-spacing: 1px;
-        }
-        
-        .content-container {
-            display: flex;
-            flex: 1;
-            padding: 20px;
-            max-width: 1600px;
-            margin: 0 auto;
-            width: 100%;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            background: rgba(25, 50, 90, 0.85);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(100, 180, 255, 0.3);
-        }
-        
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .control-group label {
-            margin-bottom: 5px;
-            color: #aaccff;
-        }
-        
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .slider-container input[type="range"] {
-            width: 150px;
-        }
-        
-        .slider-value {
-            width: 40px;
-            text-align: center;
-            background: rgba(0, 20, 40, 0.85);
-            border-radius: 4px;
-            padding: 2px 5px;
-        }
-        
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .visualization-container {
-            width: 100%;
-            height: 65vh;
-            min-height: 450px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-        }
-        
-        .info-text {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 10;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .legend {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 10;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-        }
-        
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            margin-right: 8px;
-            border-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .vector1-color { background: #1f77b4; }
-        .vector2-color { background: #ff7f0e; }
-        .result-color { background: #2ca02c; }
-        .span-color { background: #9696ff; }
-        .v1-color { background: #0070b8; }
-        .v2-color { background: #00b3b0; }
-        .v3-color { background: #d40d8c; }
-        
-        .math-info {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 12px;
-            border-radius: 8px;
-            z-index: 10;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            max-width: 300px;
-            backdrop-filter: blur(5px);
-        }
-        
-        .math-info h3 {
-            color: #ffd166;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 15px;
-            font-size: 0.9rem;
-            color: rgba(200, 220, 255, 0.8);
-            background: rgba(0, 10, 30, 0.7);
-            border-top: 1px solid rgba(100, 180, 255, 0.2);
-        }
-        
-        .decoration {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(100,180,255,0.15) 0%, rgba(100,180,255,0) 70%);
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .decoration:nth-child(1) {
-            width: 200px;
-            height: 200px;
-            top: 10%;
-            left: 5%;
-            animation: float 15s ease-in-out infinite;
-        }
-        
-        .decoration:nth-child(2) {
-            width: 150px;
-            height: 150px;
-            bottom: 15%;
-            right: 10%;
-            animation: float 12s ease-in-out infinite;
-            animation-delay: 2s;
-        }
-        
-        .decoration:nth-child(3) {
-            width: 120px;
-            height: 120px;
-            top: 40%;
-            right: 20%;
-            animation: float 10s ease-in-out infinite;
-            animation-delay: 4s;
-        }
-        
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(10deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
-        }
-        
-        @media (max-width: 1000px) {
-            .controls {
-                gap: 10px;
-            }
-            
-            .visualization-container {
-                height: 60vh;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .controls {
-                flex-direction: row;
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                justify-content: flex-start;
-                padding: 10px 5px;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
-            }
-            
-            .controls::-webkit-scrollbar {
-                display: none;
-            }
-            
-            .control-group {
-                flex: 0 0 auto;
-                min-width: 150px;
-            }
-            
-            .visualization-container {
-                height: 55vh;
-                min-height: 400px;
-            }
-            
-            .math-info {
-                max-width: 250px;
-                font-size: 0.8rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 1.6rem;
-            }
-            
-            .visualization-container {
-                height: 50vh;
-                min-height: 350px;
-            }
-            
-            .math-info {
-                max-width: 200px;
-                padding: 8px;
-                font-size: 0.7rem;
-            }
-            
-            .math-info h3 {
-                font-size: 0.9rem;
-            }
-        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        body { background:linear-gradient(135deg,#0c1a3a,#152c57); color:#fff; min-height:100vh; overflow-x:hidden; display:flex; flex-direction:column; }
+        .header { text-align:center; padding:20px; background:rgba(0,20,40,0.85); border-bottom:1px solid rgba(100,180,255,0.3); box-shadow:0 6px 25px rgba(0,0,0,0.4); }
+        .header h1 { font-size:2.4rem; margin-bottom:10px; background:linear-gradient(45deg,#ffffff,#aaccff); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 3px 8px rgba(0,0,0,0.3); letter-spacing:1px; }
+        .content-container { display:flex; flex:1; padding:20px; max-width:1600px; margin:0 auto; width:100%; flex-direction:column; align-items:center; }
+        .controls { display:flex; gap:15px; margin-bottom:20px; flex-wrap:wrap; justify-content:center; width:100%; background:rgba(25,50,90,0.85); border-radius:12px; padding:15px; box-shadow:0 8px 20px rgba(0,0,0,0.3); border:2px solid rgba(100,180,255,0.3); }
+        .control-group { display:flex; flex-direction:column; align-items:center; }
+        .control-group label { margin-bottom:5px; color:#aaccff; }
+        .slider-container { display:flex; align-items:center; gap:10px; }
+        .slider-container input[type="range"] { width:150px; }
+        .slider-value { width:40px; text-align:center; background:rgba(0,20,40,0.85); border-radius:4px; padding:2px 5px; }
+        .checkbox-container { display:flex; align-items:center; gap:5px; }
+        .visualization-container { width:100%; height:65vh; min-height:450px; background:rgba(255,255,255,0.9); border-radius:16px; overflow:hidden; box-shadow:0 15px 40px rgba(0,0,0,0.5); border:1px solid rgba(0,0,0,0.1); position:relative; display:flex; justify-content:center; align-items:center; }
+        #canvas-container { width:100%; height:100%; }
+        .info-text { position:absolute; bottom:15px; left:15px; background:rgba(0,0,0,0.7); padding:8px 12px; border-radius:6px; font-size:12px; z-index:10; color:#fff; border:1px solid rgba(255,255,255,0.3); }
+        .legend { position:absolute; bottom:15px; right:15px; background:rgba(0,0,0,0.7); padding:10px; border-radius:6px; font-size:12px; z-index:10; color:#fff; border:1px solid rgba(255,255,255,0.3); max-width:280px; }
+        .legend-item { display:flex; align-items:center; margin:4px 0; }
+        .legend-color { width:16px; height:16px; margin-right:8px; border-radius:3px; border:1px solid rgba(255,255,255,0.3); flex-shrink:0; }
+        .vector1-color { background:#1f77b4; }
+        .vector2-color { background:#ff7f0e; }
+        .result-color { background:#2ca02c; }
+        .span-color { background:#9696ff; }
+        .v1-color { background:#0070b8; }
+        .v2-color { background:#00b3b0; }
+        .v3-color { background:#d40d8c; }
+        .math-info { position:absolute; top:15px; right:15px; background:rgba(0,0,0,0.7); padding:12px; border-radius:8px; z-index:10; color:#fff; border:1px solid rgba(255,255,255,0.3); max-width:300px; backdrop-filter:blur(5px); }
+        .math-info h3 { color:#ffd166; margin-bottom:8px; font-size:1.1rem; }
+        .footer { text-align:center; padding:15px; font-size:0.9rem; color:rgba(200,220,255,0.8); background:rgba(0,10,30,0.7); border-top:1px solid rgba(100,180,255,0.2); }
+        .decoration { position:absolute; border-radius:50%; background:radial-gradient(circle,rgba(100,180,255,0.15) 0%,rgba(100,180,255,0) 70%); pointer-events:none; z-index:0; }
+        .decoration:nth-child(1) { width:200px; height:200px; top:10%; left:5%; animation:float 15s ease-in-out infinite; }
+        .decoration:nth-child(2) { width:150px; height:150px; bottom:15%; right:10%; animation:float 12s ease-in-out infinite; animation-delay:2s; }
+        .decoration:nth-child(3) { width:120px; height:120px; top:40%; right:20%; animation:float 10s ease-in-out infinite; animation-delay:4s; }
+        @keyframes float { 0% { transform:translateY(0px) rotate(0deg); } 50% { transform:translateY(-15px) rotate(10deg); } 100% { transform:translateY(0px) rotate(0deg); } }
+        @media (max-width:1000px) { .controls { gap:10px; } .visualization-container { height:60vh; } }
+        @media (max-width:768px) { .header h1 { font-size:2rem; } .controls { flex-direction:row; flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; padding:10px 5px; scrollbar-width:none; -ms-overflow-style:none; } .controls::-webkit-scrollbar { display:none; } .control-group { flex:0 0 auto; min-width:150px; } .visualization-container { height:55vh; min-height:400px; } .math-info { max-width:250px; font-size:0.8rem; } }
+        @media (max-width:480px) { .header h1 { font-size:1.6rem; } .visualization-container { height:50vh; min-height:350px; } .math-info { max-width:200px; padding:8px; font-size:0.7rem; } .math-info h3 { font-size:0.9rem; } }
     </style>
 </head>
 <body>
-    <!-- 背景装饰元素 -->
-    <div class="decoration"></div>
-    <div class="decoration"></div>
-    <div class="decoration"></div>
-    
-    <div class="header">
-        <h1>二维向量张成空间可视化</h1>
-    </div>
-    
+    <div class="decoration"></div><div class="decoration"></div><div class="decoration"></div>
+    <div class="header"><h1>二维向量张成空间可视化</h1></div>
     <div class="content-container">
         <div class="controls">
-            <div class="control-group">
-                <label for="coeff1">系数 x₁:</label>
-                <div class="slider-container">
-                    <input type="range" id="coeff1" min="-5" max="5" step="0.1" value="1">
-                    <span class="slider-value" id="coeff1-value">1.0</span>
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <label for="coeff2">系数 x₂:</label>
-                <div class="slider-container">
-                    <input type="range" id="coeff2" min="-5" max="5" step="0.1" value="1">
-                    <span class="slider-value" id="coeff2-value">1.0</span>
-                </div>
-            </div>
-            
-            <div class="control-group" style="margin-left: 20px;">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-result" checked>
-                    <label for="show-result">显示线性组合结果</label>
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-parallelogram" checked>
-                    <label for="show-parallelogram">显示平行四边形</label>
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-grid" checked>
-                    <label for="show-grid">显示网格</label>
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-u1" checked>
-                    <label for="show-u1">显示向量 u₁</label>
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-w2" checked>
-                    <label for="show-w2">显示向量 w₂</label>
-                </div>
-            </div>
-
-            <!-- 新增 v1, v2, v3 控制 -->
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-v1" checked>
-                    <label for="show-v1">显示向量 v₁</label>
-                </div>
-            </div>
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-v2" checked>
-                    <label for="show-v2">显示向量 v₂</label>
-                </div>
-            </div>
-            <div class="control-group">
-                <div class="checkbox-container">
-                    <input type="checkbox" id="show-v3" checked>
-                    <label for="show-v3">显示向量 v₃</label>
-                </div>
-            </div>
+            <div class="control-group"><label for="coeff1">系数 t₁:</label><div class="slider-container"><input type="range" id="coeff1" min="-5" max="5" step="0.1" value="1"><span class="slider-value" id="coeff1-value">1.0</span></div></div>
+            <div class="control-group"><label for="coeff2">系数 t₂:</label><div class="slider-container"><input type="range" id="coeff2" min="-5" max="5" step="0.1" value="1"><span class="slider-value" id="coeff2-value">1.0</span></div></div>
+            <div class="control-group" style="margin-left:20px;"><div class="checkbox-container"><input type="checkbox" id="show-result" checked><label for="show-result">显示 w</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-parallelogram" checked><label for="show-parallelogram">显示平行四边形</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-grid" checked><label for="show-grid">显示网格</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-u1" checked><label for="show-u1">显示 u₁</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-w2" checked><label for="show-w2">显示 w₂</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-v1" checked><label for="show-v1">显示 v₁</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-v2" checked><label for="show-v2">显示 v₂</label></div></div>
+            <div class="control-group"><div class="checkbox-container"><input type="checkbox" id="show-v3" checked><label for="show-v3">显示 v₃</label></div></div>
         </div>
-        
         <div class="visualization-container">
             <div id="canvas-container"></div>
             <div class="info-text">提示: 滚轮缩放 | 双击重置视图</div>
             <div class="legend">
-                <div class="legend-item"><div class="legend-color vector1-color"></div>向量 α (1, 1)</div>
-                <div class="legend-item"><div class="legend-color vector2-color"></div>向量 β (2, -1)</div>
-                <div class="legend-item"><div class="legend-color" style="background:#00b3b0"></div>向量 u₁ = 2α - 3β</div>
-                <div class="legend-item"><div class="legend-color" style="background:#d40d8c"></div>向量 w₂ = 3/2α + 1/2β</div>
-                <div class="legend-item"><div class="legend-color v1-color"></div>向量 v₁ = 3α</div>
-                <div class="legend-item"><div class="legend-color v2-color"></div>向量 v₂ = -7/4α</div>
-                <div class="legend-item"><div class="legend-color v3-color"></div>向量 v₃ = v₁ + 3v₂</div>
-                <div class="legend-item"><div class="legend-color result-color"></div>线性组合结果</div>
+                <div class="legend-item"><div class="legend-color vector1-color"></div>α (1,1)</div>
+                <div class="legend-item"><div class="legend-color vector2-color"></div>β (2,-1)</div>
+                <div class="legend-item"><div class="legend-color" style="background:#00b3b0"></div>u₁ = 2α - 3β</div>
+                <div class="legend-item"><div class="legend-color" style="background:#d40d8c"></div>w₂ = 3/2α + 1/2β</div>
+                <div class="legend-item"><div class="legend-color v1-color"></div>v₁ = 3α</div>
+                <div class="legend-item"><div class="legend-color v2-color"></div>v₂ = -7/4α</div>
+                <div class="legend-item"><div class="legend-color v3-color"></div>v₃ = v₁ + 3v₂</div>
+                <div class="legend-item"><div class="legend-color result-color"></div>w = t₁α + t₂β  (t₁=<span id="legend-t1">1.0</span>, t₂=<span id="legend-t2">1.0</span>)</div>
             </div>
-            
             <div class="math-info">
                 <h3>当前线性组合</h3>
-                <div id="current-equation">
-                    <p>x₁·α + x₂·β = 结果</p>
-                </div>
+                <div id="current-equation"><p>w = t₁·α + t₂·β</p></div>
             </div>
         </div>
     </div>
-    
-    <div class="footer">
-        <p>线性代数二维可视化 | 向量张成空间演示 | © 2025 数学可视化项目</p>
-    </div>
+    <div class="footer"><p>线性代数二维可视化 | 向量张成空间演示 | © 2025 数学可视化项目</p></div>
 
     <script>
-        // 初始化Three.js场景
+        // ------------------- 场景初始化 -------------------
         let scene, camera, renderer, sceneGroup;
         let vector1, vector2, resultVector;
-        let spanPlane, spanLine;
-        let gridHelper;
-        let parallelogram;
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        let targetZoom = 10;
-        let currentZoom = 10;
-        
-        // 向量对象
-        let vectorV1, vectorV2, vectorV3;
-        let vectorU1, vectorW2;
-        
-        // 悬停相关
+        let spanPlane, spanLine, gridHelper, parallelogram;
+        let vectorV1, vectorV2, vectorV3, vectorU1, vectorW2;
+        let isDraggingVector = false, draggedVector = null;
         let currentHoveredHandle = null;
-        
-        // 拖动相关
-        let isDraggingVector = false;
-        let draggedVector = null;
         let dragOffset = new THREE.Vector3();
-        
-        // 向量定义 (二维)
+        let targetZoom = 10, currentZoom = 10;
+
+        // 向量定义
         const α = new THREE.Vector3(1, 1, 0);
         const β = new THREE.Vector3(2, -1, 0);
-        
-        // 新增向量 v1, v2, v3 (初始值)
         let v1 = new THREE.Vector3(3, 3, 0);
         let v2 = new THREE.Vector3(-1.75, -1.75, 0);
-        let v3 = new THREE.Vector3(v1.x + 3 * v2.x, v1.y + 3 * v2.y, 0);
-        
-        // u1, w2
-        let u1 = new THREE.Vector3(2 * α.x - 3 * β.x, 2 * α.y - 3 * β.y, 0);
-        let w2 = new THREE.Vector3(1.5 * α.x + 0.5 * β.x, 1.5 * α.y + 0.5 * β.y, 0);
-        
-        // 当前系数
-        let coeff1 = 1.0;
-        let coeff2 = 1.0;
-        
-        // 颜色定义
-        const vector1Color = 0x1f77b4;
-        const vector2Color = 0xff7f0e;
-        const resultColor = 0x2ca02c;
-        const spanColor = 0x9696ff;
-        const v1Color = 0x0070b8;
-        const v2Color = 0x00b3b0;
-        const v3Color = 0xd40d8c;
-        const u1Color = 0x00b3b0;
-        const w2Color = 0xd40d8c;
-        
-        // 初始化场景
-        function init() {
-            const container = document.querySelector('.visualization-container');
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xffffff);
-            
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-            camera.position.set(0, 0, 10);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-            
-            const ambientLight = new THREE.AmbientLight(0x404040);
-            scene.add(ambientLight);
-            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight1.position.set(1, 1, 1);
-            scene.add(directionalLight1);
-            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-            directionalLight2.position.set(-1, -1, -1);
-            scene.add(directionalLight2);
-            
-            sceneGroup = new THREE.Group();
-            scene.add(sceneGroup);
-            
-            createVectorBasedGrid();
-            createBoundary();
-            createAxes();
-            createSpanVisualization();
-            createParallelogram();
-            createVectors();       // 创建所有向量 (包括 v1, v2, v3)
-            
-            setupEventListeners();
-            updateScene();
-            updateLegend();
-            animate();
-        }
-        
-        // 创建坐标轴（带箭头和标签）
-        function createAxes() {
-            const axesGroup = new THREE.Group();
-            const axisLength = 8;
-            const axisColor = 0x000000;
-            
-            const createAxis = (start, end, color) => {
-                const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-                const material = new THREE.LineBasicMaterial({ color, linewidth: 5 });
-                const line = new THREE.Line(geometry, material);
-                line.renderOrder = 1;
-                return line;
-            };
-            
-            axesGroup.add(createAxis(new THREE.Vector3(-axisLength, 0, 0), new THREE.Vector3(axisLength, 0, 0), axisColor));
-            axesGroup.add(createAxis(new THREE.Vector3(0, -axisLength, 0), new THREE.Vector3(0, axisLength, 0), axisColor));
-            
-            const arrow1 = createAxisArrow(new THREE.Vector3(1, 0, 0), new THREE.Vector3(axisLength, 0, 0), axisColor);
-            arrow1.renderOrder = 1;
-            axesGroup.add(arrow1);
-            
-            const arrow2 = createAxisArrow(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, axisLength, 0), axisColor);
-            arrow2.renderOrder = 1;
-            axesGroup.add(arrow2);
-            
-            sceneGroup.add(axesGroup);
-            
-            const axisLengthLabel = 8.2;
-            const xlabel = create3DAxisLabel('X', new THREE.Vector3(axisLengthLabel, 0, 0), '#000000');
-            xlabel.renderOrder = 1;
-            axesGroup.add(xlabel);
-            
-            const ylabel = create3DAxisLabel('Y', new THREE.Vector3(0, axisLengthLabel, 0), '#000000');
-            ylabel.renderOrder = 1;
-            axesGroup.add(ylabel);
-        }
-        
-        function createAxisArrow(direction, position, color) {
-            const arrowHeadLength = 0.15;
-            const arrowHeadWidth = 0.1;
-            const geometry = new THREE.ConeGeometry(arrowHeadWidth, arrowHeadLength, 3);
-            const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
-            const arrowHead = new THREE.Mesh(geometry, material);
-            arrowHead.position.copy(position);
-            const up = new THREE.Vector3(0, 1, 0);
-            arrowHead.quaternion.setFromUnitVectors(up, direction);
-            return arrowHead;
-        }
-        
-        function create3DAxisLabel(text, position, color) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 160;
-            canvas.height = 160;
-            const context = canvas.getContext('2d');
-            context.fillStyle = 'rgba(0, 0, 0, 0)';
-            context.fillRect(0, 0, 160, 160);
-            context.font = 'Bold 48px Arial';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.fillStyle = color;
-            context.fillText(text, 80, 80);
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(material);
-            sprite.scale.set(1.0, 1.0, 1.0);
-            sprite.renderOrder = 1;
-            sprite.position.copy(position);
-            return sprite;
-        }
-        
-        // 创建向量 (包括 α, β, u1, w2, v1, v2, v3, 结果)
-        function createVectors() {
-            // α
-            const arrow1 = createVectorArrow(α, vector1Color, 'α');
-            arrow1.userData = { type: 'vector', vector: α, index: 1 };
-            sceneGroup.add(arrow1);
-            vector1 = arrow1;
-            
-            // β
-            const arrow2 = createVectorArrow(β, vector2Color, 'β');
-            arrow2.userData = { type: 'vector', vector: β, index: 2 };
-            sceneGroup.add(arrow2);
-            vector2 = arrow2;
-            
-            // u1
-            const arrowU1 = createVectorArrow(u1, u1Color, 'u₁');
-            sceneGroup.add(arrowU1);
-            vectorU1 = arrowU1;
-            
-            // w2
-            const arrowW2 = createVectorArrow(w2, w2Color, 'w₂');
-            sceneGroup.add(arrowW2);
-            vectorW2 = arrowW2;
-            
-            // v1 = 3α
-            const v1Vec = new THREE.Vector3(3 * α.x, 3 * α.y, 0);
-            const arrowV1 = createVectorArrow(v1Vec, v1Color, 'v₁');
-            sceneGroup.add(arrowV1);
-            vectorV1 = arrowV1;
-            
-            // v2 = -7/4 α
-            const v2Vec = new THREE.Vector3(-1.75 * α.x, -1.75 * α.y, 0);
-            const arrowV2 = createVectorArrow(v2Vec, v2Color, 'v₂');
-            sceneGroup.add(arrowV2);
-            vectorV2 = arrowV2;
-            
-            // v3 = v1 + 3v2
-            const v3Vec = new THREE.Vector3(v1Vec.x + 3 * v2Vec.x, v1Vec.y + 3 * v2Vec.y, 0);
-            const arrowV3 = createVectorArrow(v3Vec, v3Color, 'v₃');
-            sceneGroup.add(arrowV3);
-            vectorV3 = arrowV3;
-            
-            // 结果向量
-            const resultArrow = createVectorArrow(new THREE.Vector3(0, 0, 0), resultColor, '');
-            sceneGroup.add(resultArrow);
-            resultVector = resultArrow;
-            
-            // 初始可见性
-            resultVector.visible = document.getElementById('show-result').checked;
-            if (vectorU1) vectorU1.visible = document.getElementById('show-u1').checked;
-            if (vectorW2) vectorW2.visible = document.getElementById('show-w2').checked;
-            if (vectorV1) vectorV1.visible = document.getElementById('show-v1').checked;
-            if (vectorV2) vectorV2.visible = document.getElementById('show-v2').checked;
-            if (vectorV3) vectorV3.visible = document.getElementById('show-v3').checked;
-        }
-        
-        // 创建向量箭头 (增加 labelText 参数)
-        function createVectorArrow(vector, color, labelText) {
-            const group = new THREE.Group();
-            
-            if (vector.length() > 0.01) {
-                const direction = vector.clone().normalize();
-                const length = vector.length();
-                
-                // 杆
-                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, 0, 0),
-                    new THREE.Vector3(direction.x * length, direction.y * length, 0)
-                ]);
-                const lineMaterial = new THREE.LineBasicMaterial({ color, linewidth: 3 });
-                const line = new THREE.Line(lineGeometry, lineMaterial);
-                line.renderOrder = 1;
-                group.add(line);
-                
-                // 箭头头部
-                const headLength = 0.3;
-                const headWidth = 0.2;
-                const coneGeometry = new THREE.ConeGeometry(headWidth, headLength, 3);
-                const coneMaterial = new THREE.MeshBasicMaterial({ color });
-                const cone = new THREE.Mesh(coneGeometry, coneMaterial);
-                cone.renderOrder = 1;
-                cone.position.copy(direction.clone().multiplyScalar(length - headLength/2));
-                const up = new THREE.Vector3(0, 1, 0);
-                cone.quaternion.setFromUnitVectors(up, direction);
-                group.add(cone);
-                
-                // 可交互圆点
-                const sphereGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-                const sphereMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 });
-                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-                sphere.renderOrder = 1;
-                sphere.position.copy(direction.clone().multiplyScalar(length));
-                sphere.userData = { type: 'vectorHandle' };
-                sphere.visible = false;
-                group.add(sphere);
-            } else {
-                // 零向量时显示一个小点
-                const dotGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0)]);
-                const dotMaterial = new THREE.PointsMaterial({ color, size: 0.1 });
-                const dot = new THREE.Points(dotGeometry, dotMaterial);
-                dot.renderOrder = 1;
-                group.add(dot);
-            }
-            
-            // 添加标签（如果 labelText 非空）
-            if (labelText && labelText.length > 0) {
-                const label = createCustomLabel(labelText, color);
-                // 标签放在向量中点偏移位置
-                const labelPos = vector.clone().multiplyScalar(0.5);
-                const perp = new THREE.Vector3(-vector.y, vector.x, 0).normalize();
-                labelPos.add(perp.multiplyScalar(0.3));
-                label.position.copy(labelPos);
-                group.add(label);
-            }
-            
-            return group;
-        }
-        
-        // 创建自定义标签 (返回 Sprite)
+        let v3 = new THREE.Vector3(v1.x + 3*v2.x, v1.y + 3*v2.y, 0);
+        let u1 = new THREE.Vector3(2*α.x - 3*β.x, 2*α.y - 3*β.y, 0);
+        let w2 = new THREE.Vector3(1.5*α.x + 0.5*β.x, 1.5*α.y + 0.5*β.y, 0);
+        let coeff1 = 1.0, coeff2 = 1.0; // t1, t2
+
+        // 颜色
+        const vector1Color = 0x1f77b4, vector2Color = 0xff7f0e, resultColor = 0x2ca02c;
+        const spanColor = 0x9696ff, v1Color = 0x0070b8, v2Color = 0x00b3b0, v3Color = 0xd40d8c;
+        const u1Color = 0x00b3b0, w2Color = 0xd40d8c;
+
+        // ------------------- 工具函数 -------------------
         function createCustomLabel(text, color) {
             const canvas = document.createElement('canvas');
-            canvas.width = 300;
-            canvas.height = 150;
-            const context = canvas.getContext('2d');
-            context.fillStyle = 'rgba(0, 0, 0, 0)';
-            context.fillRect(0, 0, 300, 150);
-            context.font = 'Bold 60px Arial';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.fillStyle = '#' + color.toString(16).padStart(6, '0');
-            context.fillText(text, 150, 75);
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(material);
+            canvas.width = 300; canvas.height = 150;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0,0,300,150);
+            ctx.font = 'Bold 60px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#' + color.toString(16).padStart(6,'0');
+            ctx.fillText(text, 150, 75);
+            const tex = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(mat);
             sprite.scale.set(1.5, 0.75, 1.5);
             sprite.renderOrder = 1;
             return sprite;
         }
-        
-        // 更新向量箭头 (保留原有功能，但不再需要在这里创建标签，因为我们已经有了自定义标签)
-        // 但为了保持原有逻辑，我们保留但改为使用 createVectorArrow 的 label 参数
-        function updateVectorArrow(arrowGroup, vector, color, labelText) {
-            while(arrowGroup.children.length > 0) {
-                arrowGroup.remove(arrowGroup.children[0]);
+
+        function createVectorArrow(vector, color, labelText) {
+            const group = new THREE.Group();
+            if (vector.length() > 0.01) {
+                const dir = vector.clone().normalize();
+                const len = vector.length();
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0,0,0),
+                    new THREE.Vector3(dir.x*len, dir.y*len, 0)
+                ]);
+                const lineMat = new THREE.LineBasicMaterial({ color, linewidth: 3 });
+                const line = new THREE.Line(lineGeo, lineMat);
+                line.renderOrder = 1;
+                group.add(line);
+                // 箭头头部
+                const headLen = 0.3, headWid = 0.2;
+                const coneGeo = new THREE.ConeGeometry(headWid, headLen, 3);
+                const coneMat = new THREE.MeshBasicMaterial({ color });
+                const cone = new THREE.Mesh(coneGeo, coneMat);
+                cone.renderOrder = 1;
+                cone.position.copy(dir.clone().multiplyScalar(len - headLen/2));
+                const up = new THREE.Vector3(0,1,0);
+                cone.quaternion.setFromUnitVectors(up, dir);
+                group.add(cone);
+                // 可拖拽手柄
+                const sphereGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                const sphereMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 });
+                const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+                sphere.renderOrder = 1;
+                sphere.position.copy(dir.clone().multiplyScalar(len));
+                sphere.userData = { type: 'vectorHandle' };
+                sphere.visible = false;
+                group.add(sphere);
+            } else {
+                // 零向量画点
+                const dotGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0)]);
+                const dotMat = new THREE.PointsMaterial({ color, size: 0.1 });
+                const dot = new THREE.Points(dotGeo, dotMat);
+                dot.renderOrder = 1;
+                group.add(dot);
+                // 手柄在原点
+                const sphereGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                const sphereMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 });
+                const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+                sphere.renderOrder = 1;
+                sphere.position.set(0,0,0);
+                sphere.userData = { type: 'vectorHandle' };
+                sphere.visible = false;
+                group.add(sphere);
             }
-            // 重新创建箭头和标签
-            const newArrow = createVectorArrow(vector, color, labelText || '');
-            // 复制子元素到原组
-            while(newArrow.children.length > 0) {
-                const child = newArrow.children[0];
-                newArrow.remove(child);
-                arrowGroup.add(child);
+            if (labelText && labelText.length > 0) {
+                const label = createCustomLabel(labelText, color);
+                const pos = vector.clone().multiplyScalar(0.5);
+                const perp = new THREE.Vector3(-vector.y, vector.x, 0).normalize();
+                pos.add(perp.multiplyScalar(0.3));
+                label.position.copy(pos);
+                group.add(label);
+            }
+            return group;
+        }
+
+        function updateVectorArrow(group, vector, color, labelText) {
+            while(group.children.length) group.remove(group.children[0]);
+            const newGroup = createVectorArrow(vector, color, labelText || '');
+            while(newGroup.children.length) {
+                const child = newGroup.children[0];
+                newGroup.remove(child);
+                group.add(child);
             }
         }
-        
-        // 辅助函数：检查点是否在边界内 (保留)
-        function isPointInBoundary(point) {
-            const boundarySize = 8;
-            return Math.abs(point.x) <= boundarySize && Math.abs(point.y) <= boundarySize;
-        }
-        
-        // 裁剪线段 (保留)
+
+        // 裁剪线段（用于网格）
         function clipLineToBoundary(start, end) {
-            const boundaryMin = -8, boundaryMax = 8;
+            const min = -8, max = 8;
             const dx = end.x - start.x, dy = end.y - start.y;
-            let t0 = 0.0, t1 = 1.0;
+            let t0 = 0, t1 = 1;
             if (dx !== 0) {
-                const tMinX = (boundaryMin - start.x) / dx;
-                const tMaxX = (boundaryMax - start.x) / dx;
-                const tLeft = Math.min(tMinX, tMaxX);
-                const tRight = Math.max(tMinX, tMaxX);
-                t0 = Math.max(t0, tLeft);
-                t1 = Math.min(t1, tRight);
-            } else {
-                if (start.x < boundaryMin || start.x > boundaryMax) return null;
-            }
+                const tMin = (min - start.x)/dx, tMax = (max - start.x)/dx;
+                const tL = Math.min(tMin, tMax), tR = Math.max(tMin, tMax);
+                t0 = Math.max(t0, tL); t1 = Math.min(t1, tR);
+            } else if (start.x < min || start.x > max) return null;
             if (dy !== 0) {
-                const tMinY = (boundaryMin - start.y) / dy;
-                const tMaxY = (boundaryMax - start.y) / dy;
-                const tBottom = Math.min(tMinY, tMaxY);
-                const tTop = Math.max(tMinY, tMaxY);
-                t0 = Math.max(t0, tBottom);
-                t1 = Math.min(t1, tTop);
-            } else {
-                if (start.y < boundaryMin || start.y > boundaryMax) return null;
-            }
+                const tMin = (min - start.y)/dy, tMax = (max - start.y)/dy;
+                const tB = Math.min(tMin, tMax), tT = Math.max(tMin, tMax);
+                t0 = Math.max(t0, tB); t1 = Math.min(t1, tT);
+            } else if (start.y < min || start.y > max) return null;
             if (t0 > t1) return null;
-            return [
-                new THREE.Vector3(start.x + t0 * dx, start.y + t0 * dy, 0),
-                new THREE.Vector3(start.x + t1 * dx, start.y + t1 * dy, 0)
-            ];
+            return [ new THREE.Vector3(start.x + t0*dx, start.y + t0*dy, 0),
+                     new THREE.Vector3(start.x + t1*dx, start.y + t1*dy, 0) ];
         }
-        
-        // 创建网格
+
+        // ------------------- 场景构建函数 -------------------
+        function createAxes() {
+            const group = new THREE.Group();
+            const len = 8, color = 0x000000;
+            const makeLine = (s,e,c) => new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([s,e]),
+                new THREE.LineBasicMaterial({ color:c, linewidth:5 })
+            );
+            group.add(makeLine(new THREE.Vector3(-len,0,0), new THREE.Vector3(len,0,0), color));
+            group.add(makeLine(new THREE.Vector3(0,-len,0), new THREE.Vector3(0,len,0), color));
+            // 箭头
+            const arrow = (dir, pos) => {
+                const cone = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.1, 0.15, 3),
+                    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })
+                );
+                cone.position.copy(pos);
+                const up = new THREE.Vector3(0,1,0);
+                cone.quaternion.setFromUnitVectors(up, dir);
+                cone.renderOrder = 1;
+                return cone;
+            };
+            group.add(arrow(new THREE.Vector3(1,0,0), new THREE.Vector3(len,0,0)));
+            group.add(arrow(new THREE.Vector3(0,1,0), new THREE.Vector3(0,len,0)));
+            // 标签
+            const labelX = createCustomLabel('X', 0x000000);
+            labelX.position.set(len+0.3, 0, 0);
+            group.add(labelX);
+            const labelY = createCustomLabel('Y', 0x000000);
+            labelY.position.set(0, len+0.3, 0);
+            group.add(labelY);
+            sceneGroup.add(group);
+        }
+
         function createVectorBasedGrid() {
             const gridGroup = new THREE.Group();
-            const gridColor = 0xeeeeee;
-            const gridMaterial = new THREE.LineBasicMaterial({ color: gridColor, linewidth: 0.5 });
-            
+            const mat = new THREE.LineBasicMaterial({ color: 0xeeeeee, linewidth: 0.5 });
             for (let i = -10; i <= 10; i++) {
                 for (let j = -10; j <= 10; j++) {
-                    // α方向
-                    const start1 = new THREE.Vector3(i * α.x + j * β.x, i * α.y + j * β.y, 0);
-                    const end1 = new THREE.Vector3((i+1) * α.x + j * β.x, (i+1) * α.y + j * β.y, 0);
-                    const clipped1 = clipLineToBoundary(start1, end1);
-                    if (clipped1) {
-                        const line1 = new THREE.Line(
-                            new THREE.BufferGeometry().setFromPoints(clipped1),
-                            gridMaterial
-                        );
-                        line1.renderOrder = 0;
-                        gridGroup.add(line1);
-                    }
-                    // β方向
-                    const start2 = new THREE.Vector3(i * α.x + j * β.x, i * α.y + j * β.y, 0);
-                    const end2 = new THREE.Vector3(i * α.x + (j+1) * β.x, i * α.y + (j+1) * β.y, 0);
-                    const clipped2 = clipLineToBoundary(start2, end2);
-                    if (clipped2) {
-                        const line2 = new THREE.Line(
-                            new THREE.BufferGeometry().setFromPoints(clipped2),
-                            gridMaterial
-                        );
-                        line2.renderOrder = 0;
-                        gridGroup.add(line2);
-                    }
+                    const s1 = new THREE.Vector3(i*α.x + j*β.x, i*α.y + j*β.y, 0);
+                    const e1 = new THREE.Vector3((i+1)*α.x + j*β.x, (i+1)*α.y + j*β.y, 0);
+                    const c1 = clipLineToBoundary(s1, e1);
+                    if (c1) { const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c1), mat); line.renderOrder = 0; gridGroup.add(line); }
+                    const s2 = new THREE.Vector3(i*α.x + j*β.x, i*α.y + j*β.y, 0);
+                    const e2 = new THREE.Vector3(i*α.x + (j+1)*β.x, i*α.y + (j+1)*β.y, 0);
+                    const c2 = clipLineToBoundary(s2, e2);
+                    if (c2) { const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c2), mat); line.renderOrder = 0; gridGroup.add(line); }
                 }
             }
             gridHelper = gridGroup;
             sceneGroup.add(gridHelper);
         }
-        
-        // 创建边界
-        function createBoundary() {
-            const boundaryGroup = new THREE.Group();
-            const boundaryColor = 0x000000;
-            const halfSize = 8;
-            const createBoundaryLine = (start, end, color) => {
-                const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-                const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
-                return new THREE.Line(geometry, material);
-            };
-            boundaryGroup.add(createBoundaryLine(new THREE.Vector3(-halfSize, halfSize, 0), new THREE.Vector3(halfSize, halfSize, 0), boundaryColor));
-            boundaryGroup.add(createBoundaryLine(new THREE.Vector3(-halfSize, -halfSize, 0), new THREE.Vector3(halfSize, -halfSize, 0), boundaryColor));
-            boundaryGroup.add(createBoundaryLine(new THREE.Vector3(-halfSize, -halfSize, 0), new THREE.Vector3(-halfSize, halfSize, 0), boundaryColor));
-            boundaryGroup.add(createBoundaryLine(new THREE.Vector3(halfSize, -halfSize, 0), new THREE.Vector3(halfSize, halfSize, 0), boundaryColor));
-            sceneGroup.add(boundaryGroup);
-        }
-        
-        // 创建平行四边形
+
         function createParallelogram() {
-            const geometry = new THREE.BufferGeometry();
-            const material = new THREE.MeshBasicMaterial({
-                color: spanColor,
-                opacity: 0.3,
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            parallelogram = new THREE.Mesh(geometry, material);
+            const geo = new THREE.BufferGeometry();
+            const mat = new THREE.MeshBasicMaterial({ color: spanColor, opacity: 0.3, transparent: true, side: THREE.DoubleSide });
+            parallelogram = new THREE.Mesh(geo, mat);
             sceneGroup.add(parallelogram);
         }
-        
-        // 张成空间 (保留)
+
         function createSpanVisualization() {
-            const planeGeometry = new THREE.PlaneGeometry(10, 10);
-            const planeMaterial = new THREE.MeshPhongMaterial({
-                color: spanColor,
-                side: THREE.DoubleSide,
-                opacity: 0.3,
-                transparent: true,
-                wireframe: false
-            });
-            spanPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            // 保留但隐藏
+            spanPlane = new THREE.Mesh(new THREE.PlaneGeometry(10,10), new THREE.MeshPhongMaterial({ color: spanColor, transparent: true, opacity: 0.3, side: THREE.DoubleSide }));
             spanPlane.visible = false;
             sceneGroup.add(spanPlane);
-            
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-5, -5, 0),
-                new THREE.Vector3(5, 5, 0)
-            ]);
-            const lineMaterial = new THREE.LineBasicMaterial({ color: spanColor, linewidth: 3 });
-            spanLine = new THREE.Line(lineGeometry, lineMaterial);
+            spanLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-5,-5,0), new THREE.Vector3(5,5,0)]),
+                                      new THREE.LineBasicMaterial({ color: spanColor }));
             spanLine.visible = false;
             sceneGroup.add(spanLine);
         }
-        
-        // 更新场景 (滑块改变时)
-        function updateScene() {
-            coeff1 = parseFloat(document.getElementById('coeff1').value);
-            coeff2 = parseFloat(document.getElementById('coeff2').value);
-            document.getElementById('coeff1-value').textContent = coeff1.toFixed(1);
-            document.getElementById('coeff2-value').textContent = coeff2.toFixed(1);
-            
-            const result = new THREE.Vector3(coeff1 * α.x + coeff2 * β.x, coeff1 * α.y + coeff2 * β.y, 0);
-            updateVectorArrow(resultVector, result, resultColor, '');
-            updateSpanVisualization();
-            updateParallelogram();
-            updateEquationDisplay(result);
+
+        // 创建所有向量
+        function createVectors() {
+            // α
+            const a = createVectorArrow(α, vector1Color, 'α');
+            a.userData = { type: 'vector', vector: α, index: 1 };
+            sceneGroup.add(a); vector1 = a;
+            // β
+            const b = createVectorArrow(β, vector2Color, 'β');
+            b.userData = { type: 'vector', vector: β, index: 2 };
+            sceneGroup.add(b); vector2 = b;
+            // u1, w2, v1, v2, v3
+            vectorU1 = createVectorArrow(u1, u1Color, 'u₁'); sceneGroup.add(vectorU1);
+            vectorW2 = createVectorArrow(w2, w2Color, 'w₂'); sceneGroup.add(vectorW2);
+            vectorV1 = createVectorArrow(v1, v1Color, 'v₁'); sceneGroup.add(vectorV1);
+            vectorV2 = createVectorArrow(v2, v2Color, 'v₂'); sceneGroup.add(vectorV2);
+            vectorV3 = createVectorArrow(v3, v3Color, 'v₃'); sceneGroup.add(vectorV3);
+            // 结果向量 w
+            const wVec = new THREE.Vector3(coeff1*α.x + coeff2*β.x, coeff1*α.y + coeff2*β.y, 0);
+            const r = createVectorArrow(wVec, resultColor, 'w');
+            r.userData = { type: 'vector', vector: wVec, isResult: true };
+            sceneGroup.add(r); resultVector = r;
+            // 初始可见性
+            resultVector.visible = document.getElementById('show-result').checked;
+            vectorU1.visible = document.getElementById('show-u1').checked;
+            vectorW2.visible = document.getElementById('show-w2').checked;
+            vectorV1.visible = document.getElementById('show-v1').checked;
+            vectorV2.visible = document.getElementById('show-v2').checked;
+            vectorV3.visible = document.getElementById('show-v3').checked;
         }
-        
-        // 更新平行四边形
+
+        // ------------------- 更新函数 -------------------
+        function updateResultVector() {
+            const w = new THREE.Vector3(coeff1*α.x + coeff2*β.x, coeff1*α.y + coeff2*β.y, 0);
+            updateVectorArrow(resultVector, w, resultColor, 'w');
+            resultVector.userData.vector = w;
+            // 更新数学显示
+            document.getElementById('current-equation').innerHTML =
+                `<p>w = ${coeff1.toFixed(2)}·α + ${coeff2.toFixed(2)}·β</p>
+                 <p>w = (${w.x.toFixed(2)}, ${w.y.toFixed(2)})</p>`;
+            document.getElementById('legend-t1').textContent = coeff1.toFixed(2);
+            document.getElementById('legend-t2').textContent = coeff2.toFixed(2);
+            // 更新平行四边形
+            updateParallelogram();
+        }
+
         function updateParallelogram() {
-            const vertex1 = new THREE.Vector3(0, 0, 0);
-            const vertex2 = new THREE.Vector3(coeff1 * α.x, coeff1 * α.y, 0);
-            const vertex3 = new THREE.Vector3(coeff2 * β.x, coeff2 * β.y, 0);
-            const vertex4 = new THREE.Vector3(coeff1 * α.x + coeff2 * β.x, coeff1 * α.y + coeff2 * β.y, 0);
-            const vertices = new Float32Array([
-                vertex1.x, vertex1.y, vertex1.z,
-                vertex2.x, vertex2.y, vertex2.z,
-                vertex3.x, vertex3.y, vertex3.z,
-                vertex2.x, vertex2.y, vertex2.z,
-                vertex3.x, vertex3.y, vertex3.z,
-                vertex4.x, vertex4.y, vertex4.z
+            const v1 = new THREE.Vector3(0,0,0);
+            const v2 = new THREE.Vector3(coeff1*α.x, coeff1*α.y, 0);
+            const v3 = new THREE.Vector3(coeff2*β.x, coeff2*β.y, 0);
+            const v4 = new THREE.Vector3(coeff1*α.x + coeff2*β.x, coeff1*α.y + coeff2*β.y, 0);
+            const verts = new Float32Array([
+                v1.x,v1.y,v1.z, v2.x,v2.y,v2.z, v3.x,v3.y,v3.z,
+                v2.x,v2.y,v2.z, v3.x,v3.y,v3.z, v4.x,v4.y,v4.z
             ]);
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-            geometry.computeVertexNormals();
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+            geo.computeVertexNormals();
             parallelogram.geometry.dispose();
-            parallelogram.geometry = geometry;
+            parallelogram.geometry = geo;
             parallelogram.visible = document.getElementById('show-parallelogram').checked;
         }
-        
-        function updateSpanVisualization() {
-            spanPlane.visible = false;
-            spanLine.visible = false;
-        }
-        
-        function updateEquationDisplay(result) {
-            const equationElement = document.getElementById('current-equation');
-            equationElement.innerHTML = `
-                <p>${coeff1.toFixed(1)}·α + ${coeff2.toFixed(1)}·β =</p>
-                <p>(${result.x.toFixed(2)}, ${result.y.toFixed(2)})</p>
-            `;
-        }
-        
-        // 更新额外的向量 (u1, w2, v1, v2, v3) 当 α 或 β 拖动时
+
         function updateAdditionalVectors() {
-            // u1 = 2α - 3β
-            u1 = new THREE.Vector3(2 * α.x - 3 * β.x, 2 * α.y - 3 * β.y, 0);
-            if (vectorU1) {
-                sceneGroup.remove(vectorU1);
-                vectorU1 = createVectorArrow(u1, u1Color, 'u₁');
-                sceneGroup.add(vectorU1);
-                vectorU1.visible = document.getElementById('show-u1').checked;
-            }
-            
-            // w2 = 3/2α + 1/2β
-            w2 = new THREE.Vector3(1.5 * α.x + 0.5 * β.x, 1.5 * α.y + 0.5 * β.y, 0);
-            if (vectorW2) {
-                sceneGroup.remove(vectorW2);
-                vectorW2 = createVectorArrow(w2, w2Color, 'w₂');
-                sceneGroup.add(vectorW2);
-                vectorW2.visible = document.getElementById('show-w2').checked;
-            }
-            
-            // v1 = 3α
-            v1 = new THREE.Vector3(3 * α.x, 3 * α.y, 0);
-            if (vectorV1) {
-                sceneGroup.remove(vectorV1);
-                vectorV1 = createVectorArrow(v1, v1Color, 'v₁');
-                sceneGroup.add(vectorV1);
-                vectorV1.visible = document.getElementById('show-v1').checked;
-            }
-            
-            // v2 = -7/4 α
-            v2 = new THREE.Vector3(-1.75 * α.x, -1.75 * α.y, 0);
-            if (vectorV2) {
-                sceneGroup.remove(vectorV2);
-                vectorV2 = createVectorArrow(v2, v2Color, 'v₂');
-                sceneGroup.add(vectorV2);
-                vectorV2.visible = document.getElementById('show-v2').checked;
-            }
-            
-            // v3 = v1 + 3v2
-            v3 = new THREE.Vector3(v1.x + 3 * v2.x, v1.y + 3 * v2.y, 0);
-            if (vectorV3) {
-                sceneGroup.remove(vectorV3);
-                vectorV3 = createVectorArrow(v3, v3Color, 'v₃');
-                sceneGroup.add(vectorV3);
-                vectorV3.visible = document.getElementById('show-v3').checked;
-            }
+            // u1, w2, v1, v2, v3 重新计算并更新
+            u1.set(2*α.x - 3*β.x, 2*α.y - 3*β.y, 0);
+            w2.set(1.5*α.x + 0.5*β.x, 1.5*α.y + 0.5*β.y, 0);
+            v1.set(3*α.x, 3*α.y, 0);
+            v2.set(-1.75*α.x, -1.75*α.y, 0);
+            v3.set(v1.x + 3*v2.x, v1.y + 3*v2.y, 0);
+            // 重建箭头
+            if (vectorU1) { sceneGroup.remove(vectorU1); vectorU1 = createVectorArrow(u1, u1Color, 'u₁'); sceneGroup.add(vectorU1); vectorU1.visible = document.getElementById('show-u1').checked; }
+            if (vectorW2) { sceneGroup.remove(vectorW2); vectorW2 = createVectorArrow(w2, w2Color, 'w₂'); sceneGroup.add(vectorW2); vectorW2.visible = document.getElementById('show-w2').checked; }
+            if (vectorV1) { sceneGroup.remove(vectorV1); vectorV1 = createVectorArrow(v1, v1Color, 'v₁'); sceneGroup.add(vectorV1); vectorV1.visible = document.getElementById('show-v1').checked; }
+            if (vectorV2) { sceneGroup.remove(vectorV2); vectorV2 = createVectorArrow(v2, v2Color, 'v₂'); sceneGroup.add(vectorV2); vectorV2.visible = document.getElementById('show-v2').checked; }
+            if (vectorV3) { sceneGroup.remove(vectorV3); vectorV3 = createVectorArrow(v3, v3Color, 'v₃'); sceneGroup.add(vectorV3); vectorV3.visible = document.getElementById('show-v3').checked; }
         }
-        
-        // 更新网格 (当 α 或 β 变化时重建)
+
         function updateGrid() {
-            let gridVisible = true;
-            if (gridHelper) {
-                gridVisible = gridHelper.visible;
-                sceneGroup.remove(gridHelper);
-            }
-            // 保存所有向量引用
-            const tempVector1 = vector1;
-            const tempVector2 = vector2;
-            const tempResultVector = resultVector;
-            const tempVectorV1 = vectorV1;
-            const tempVectorV2 = vectorV2;
-            const tempVectorV3 = vectorV3;
-            const tempVectorU1 = vectorU1;
-            const tempVectorW2 = vectorW2;
-            
-            if (vector1) sceneGroup.remove(vector1);
-            if (vector2) sceneGroup.remove(vector2);
-            if (resultVector) sceneGroup.remove(resultVector);
-            if (vectorV1) sceneGroup.remove(vectorV1);
-            if (vectorV2) sceneGroup.remove(vectorV2);
-            if (vectorV3) sceneGroup.remove(vectorV3);
-            if (vectorU1) sceneGroup.remove(vectorU1);
-            if (vectorW2) sceneGroup.remove(vectorW2);
-            
+            let vis = true;
+            if (gridHelper) { vis = gridHelper.visible; sceneGroup.remove(gridHelper); }
+            // 保存所有向量
+            const objs = [vector1, vector2, resultVector, vectorU1, vectorW2, vectorV1, vectorV2, vectorV3];
+            objs.forEach(o => { if(o) sceneGroup.remove(o); });
             createVectorBasedGrid();
-            if (gridHelper) gridHelper.visible = gridVisible;
-            
-            // 重新添加向量
-            if (tempVector1) sceneGroup.add(tempVector1);
-            if (tempVector2) sceneGroup.add(tempVector2);
-            if (tempResultVector) sceneGroup.add(tempResultVector);
-            if (tempVectorV1) sceneGroup.add(tempVectorV1);
-            if (tempVectorV2) sceneGroup.add(tempVectorV2);
-            if (tempVectorV3) sceneGroup.add(tempVectorV3);
-            if (tempVectorU1) sceneGroup.add(tempVectorU1);
-            if (tempVectorW2) sceneGroup.add(tempVectorW2);
+            if (gridHelper) gridHelper.visible = vis;
+            objs.forEach(o => { if(o) sceneGroup.add(o); });
         }
-        
-        // 更新图例
-        function updateLegend() {
+
+        function updateLegendAndInfo() {
+            // 图例中显示 t1, t2 已通过 id 更新，但为了动态坐标，我们重新设置图例内容（可简化）
+            // 这里我们动态更新图例中的坐标（可选）
             const legend = document.querySelector('.legend');
-            legend.innerHTML = `
-                <div class="legend-item"><div class="legend-color vector1-color"></div>向量 α (${α.x.toFixed(2)}, ${α.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color vector2-color"></div>向量 β (${β.x.toFixed(2)}, ${β.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color" style="background:#00b3b0"></div>向量 u₁ = 2α - 3β (${u1.x.toFixed(2)}, ${u1.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color" style="background:#d40d8c"></div>向量 w₂ = 3/2α + 1/2β (${w2.x.toFixed(2)}, ${w2.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color v1-color"></div>向量 v₁ = 3α (${v1.x.toFixed(2)}, ${v1.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color v2-color"></div>向量 v₂ = -7/4α (${v2.x.toFixed(2)}, ${v2.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color v3-color"></div>向量 v₃ = v₁ + 3v₂ (${v3.x.toFixed(2)}, ${v3.y.toFixed(2)})</div>
-                <div class="legend-item"><div class="legend-color result-color"></div>线性组合结果</div>
-            `;
+            // 保持结构不变，只更新数值
+            document.getElementById('legend-t1').textContent = coeff1.toFixed(2);
+            document.getElementById('legend-t2').textContent = coeff2.toFixed(2);
         }
-        
-        // 设置事件监听器
+
+        // 从 w 坐标反解 t1, t2
+        function solveCoefficients(w) {
+            const a1 = α.x, a2 = α.y, b1 = β.x, b2 = β.y;
+            const det = a1*b2 - a2*b1;
+            if (Math.abs(det) < 1e-10) return null;
+            const t1 = (w.x*b2 - w.y*b1) / det;
+            const t2 = (a1*w.y - a2*w.x) / det;
+            return { t1, t2 };
+        }
+
+        // 更新滑块值并触发更新
+        function setCoefficients(t1, t2) {
+            // 限制范围避免滑块溢出（但可以接受）
+            document.getElementById('coeff1').value = t1;
+            document.getElementById('coeff2').value = t2;
+            document.getElementById('coeff1-value').textContent = t1.toFixed(1);
+            document.getElementById('coeff2-value').textContent = t2.toFixed(1);
+            coeff1 = t1; coeff2 = t2;
+            // 更新场景
+            updateResultVector();
+            updateParallelogram();
+            updateLegendAndInfo();
+        }
+
+        // ------------------- 鼠标交互 -------------------
+        function onMouseDown(event) {
+            if (currentHoveredHandle) {
+                isDraggingVector = true;
+                let parent = currentHoveredHandle.parent;
+                while (parent && !parent.userData.type) parent = parent.parent;
+                if (parent) draggedVector = parent;
+                const mouse = new THREE.Vector2();
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1;
+                mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1;
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                const plane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+                const inter = new THREE.Vector3();
+                raycaster.ray.intersectPlane(plane, inter);
+                dragOffset.copy(inter).sub(currentHoveredHandle.getWorldPosition(new THREE.Vector3()));
+                event.preventDefault();
+            }
+        }
+
+        function onMouseMove(event) {
+            if (isDraggingVector && draggedVector) {
+                const mouse = new THREE.Vector2();
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1;
+                mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1;
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                const plane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+                const inter = new THREE.Vector3();
+                raycaster.ray.intersectPlane(plane, inter);
+                const newPos = inter.sub(dragOffset);
+                // 判断拖动的是哪个向量
+                if (draggedVector === vector1) {
+                    α.copy(newPos);
+                    updateVectorArrow(vector1, α, vector1Color, 'α');
+                    updateAdditionalVectors();
+                    updateGrid();
+                    if (gridHelper) gridHelper.visible = document.getElementById('show-grid').checked;
+                    // 更新结果 w 和系数
+                    const w = new THREE.Vector3(coeff1*α.x + coeff2*β.x, coeff1*α.y + coeff2*β.y, 0);
+                    updateVectorArrow(resultVector, w, resultColor, 'w');
+                    resultVector.userData.vector = w;
+                    updateParallelogram();
+                    updateLegendAndInfo();
+                    // 更新数学显示
+                    document.getElementById('current-equation').innerHTML =
+                        `<p>w = ${coeff1.toFixed(2)}·α + ${coeff2.toFixed(2)}·β</p>
+                         <p>w = (${w.x.toFixed(2)}, ${w.y.toFixed(2)})</p>`;
+                    renderer.render(scene, camera);
+                } else if (draggedVector === vector2) {
+                    β.copy(newPos);
+                    updateVectorArrow(vector2, β, vector2Color, 'β');
+                    updateAdditionalVectors();
+                    updateGrid();
+                    if (gridHelper) gridHelper.visible = document.getElementById('show-grid').checked;
+                    const w = new THREE.Vector3(coeff1*α.x + coeff2*β.x, coeff1*α.y + coeff2*β.y, 0);
+                    updateVectorArrow(resultVector, w, resultColor, 'w');
+                    resultVector.userData.vector = w;
+                    updateParallelogram();
+                    updateLegendAndInfo();
+                    document.getElementById('current-equation').innerHTML =
+                        `<p>w = ${coeff1.toFixed(2)}·α + ${coeff2.toFixed(2)}·β</p>
+                         <p>w = (${w.x.toFixed(2)}, ${w.y.toFixed(2)})</p>`;
+                    renderer.render(scene, camera);
+                } else if (draggedVector === resultVector) {
+                    // 拖动结果向量 w，反解 t1, t2
+                    const w = newPos.clone();
+                    // 限制在边界内
+                    const limit = 8;
+                    w.x = Math.max(-limit, Math.min(limit, w.x));
+                    w.y = Math.max(-limit, Math.min(limit, w.y));
+                    const sol = solveCoefficients(w);
+                    if (sol) {
+                        // 更新滑块
+                        document.getElementById('coeff1').value = sol.t1;
+                        document.getElementById('coeff2').value = sol.t2;
+                        document.getElementById('coeff1-value').textContent = sol.t1.toFixed(1);
+                        document.getElementById('coeff2-value').textContent = sol.t2.toFixed(1);
+                        coeff1 = sol.t1; coeff2 = sol.t2;
+                        // 更新 w 箭头
+                        updateVectorArrow(resultVector, w, resultColor, 'w');
+                        resultVector.userData.vector = w;
+                        // 更新平行四边形和显示
+                        updateParallelogram();
+                        updateLegendAndInfo();
+                        document.getElementById('current-equation').innerHTML =
+                            `<p>w = ${coeff1.toFixed(2)}·α + ${coeff2.toFixed(2)}·β</p>
+                             <p>w = (${w.x.toFixed(2)}, ${w.y.toFixed(2)})</p>`;
+                        renderer.render(scene, camera);
+                    }
+                }
+                event.preventDefault();
+            }
+        }
+
+        function onMouseUp(event) {
+            isDraggingVector = false;
+            draggedVector = null;
+        }
+
+        function onHover(event) {
+            const mouse = new THREE.Vector2();
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1;
+            mouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1;
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            // 检测所有可拖动的向量：vector1, vector2, resultVector
+            const targets = [vector1, vector2, resultVector].filter(Boolean);
+            const intersects = raycaster.intersectObjects(targets, true);
+            // 隐藏所有手柄
+            targets.forEach(vec => {
+                if (vec) {
+                    vec.children.forEach(child => {
+                        if (child.userData.type === 'vectorHandle') {
+                            child.visible = false;
+                            child.scale.set(1,1,1);
+                        }
+                    });
+                }
+            });
+            let hovered = null;
+            if (intersects.length > 0 && !isDraggingVector) {
+                intersects.forEach(intersect => {
+                    let obj = intersect.object;
+                    while (obj && obj.userData.type !== 'vectorHandle') obj = obj.parent;
+                    if (obj && obj.userData.type === 'vectorHandle') {
+                        obj.visible = true;
+                        obj.scale.set(1.5,1.5,1.5);
+                        hovered = obj;
+                    }
+                });
+            }
+            currentHoveredHandle = hovered;
+        }
+
+        // ------------------- 设置事件监听 -------------------
         function setupEventListeners() {
-            document.getElementById('coeff1').addEventListener('input', updateScene);
-            document.getElementById('coeff2').addEventListener('input', updateScene);
-            
+            document.getElementById('coeff1').addEventListener('input', function() {
+                coeff1 = parseFloat(this.value);
+                document.getElementById('coeff1-value').textContent = coeff1.toFixed(1);
+                updateResultVector();
+                updateLegendAndInfo();
+            });
+            document.getElementById('coeff2').addEventListener('input', function() {
+                coeff2 = parseFloat(this.value);
+                document.getElementById('coeff2-value').textContent = coeff2.toFixed(1);
+                updateResultVector();
+                updateLegendAndInfo();
+            });
             document.getElementById('show-result').addEventListener('change', function() {
                 if (resultVector) resultVector.visible = this.checked;
             });
@@ -1042,24 +582,20 @@
             document.getElementById('show-v3').addEventListener('change', function() {
                 if (vectorV3) vectorV3.visible = this.checked;
             });
-            
+
             const canvas = renderer.domElement;
             canvas.addEventListener('mousedown', onMouseDown);
             canvas.addEventListener('mousemove', onMouseMove);
             canvas.addEventListener('mouseup', onMouseUp);
             canvas.addEventListener('mouseleave', onMouseUp);
             canvas.addEventListener('mousemove', onHover);
-            
+
             canvas.addEventListener('wheel', function(e) {
                 e.preventDefault();
                 targetZoom += e.deltaY * 0.01;
                 targetZoom = Math.max(5, Math.min(15, targetZoom));
             });
-            
-            canvas.addEventListener('dblclick', function() {
-                targetZoom = 10;
-            });
-            
+            canvas.addEventListener('dblclick', function() { targetZoom = 10; });
             window.addEventListener('resize', function() {
                 const container = document.querySelector('.visualization-container');
                 camera.aspect = container.clientWidth / container.clientHeight;
@@ -1067,111 +603,50 @@
                 renderer.setSize(container.clientWidth, container.clientHeight);
             });
         }
-        
-        // 鼠标事件处理 (拖拽向量)
-        function onMouseDown(event) {
-            if (currentHoveredHandle) {
-                isDraggingVector = true;
-                let parent = currentHoveredHandle.parent;
-                while (parent && !parent.userData.type) parent = parent.parent;
-                if (parent) draggedVector = parent;
-                
-                const mouse = new THREE.Vector2();
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(mouse, camera);
-                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-                const intersection = new THREE.Vector3();
-                raycaster.ray.intersectPlane(plane, intersection);
-                dragOffset.copy(intersection).sub(currentHoveredHandle.getWorldPosition(new THREE.Vector3()));
-                event.preventDefault();
-            }
-        }
-        
-        function onMouseMove(event) {
-            if (isDraggingVector && draggedVector) {
-                const mouse = new THREE.Vector2();
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(mouse, camera);
-                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-                const intersection = new THREE.Vector3();
-                raycaster.ray.intersectPlane(plane, intersection);
-                const newPosition = intersection.sub(dragOffset);
-                
-                if (draggedVector === vector1) {
-                    α.copy(newPosition);
-                    updateVectorArrow(vector1, α, vector1Color, 'α');
-                } else if (draggedVector === vector2) {
-                    β.copy(newPosition);
-                    updateVectorArrow(vector2, β, vector2Color, 'β');
-                }
-                
-                // 更新所有衍生向量
-                updateAdditionalVectors();
-                updateGrid();
-                if (gridHelper) gridHelper.visible = document.getElementById('show-grid').checked;
-                updateParallelogram();
-                updateLegend();
-                updateScene(); // 更新结果和滑块
-                renderer.render(scene, camera);
-                event.preventDefault();
-            }
-        }
-        
-        function onMouseUp(event) {
-            isDraggingVector = false;
-            draggedVector = null;
-        }
-        
-        function onHover(event) {
-            const mouse = new THREE.Vector2();
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects([vector1, vector2], true);
-            
-            [vector1, vector2].forEach(vector => {
-                if (vector) {
-                    vector.children.forEach(child => {
-                        if (child.userData.type === 'vectorHandle') {
-                            child.visible = false;
-                            child.scale.set(1, 1, 1);
-                        }
-                    });
-                }
-            });
-            
-            let hoveredHandle = null;
-            if (intersects.length > 0 && !isDraggingVector) {
-                intersects.forEach(intersect => {
-                    let object = intersect.object;
-                    while (object && object.userData.type !== 'vectorHandle') object = object.parent;
-                    if (object && object.userData.type === 'vectorHandle') {
-                        object.visible = true;
-                        object.scale.set(1.5, 1.5, 1.5);
-                        hoveredHandle = object;
-                    }
-                });
-            }
-            currentHoveredHandle = hoveredHandle;
-        }
-        
-        // 动画循环
+
+        // ------------------- 启动动画 -------------------
         function animate() {
             requestAnimationFrame(animate);
             currentZoom += (targetZoom - currentZoom) * 0.1;
             camera.position.z = currentZoom;
             renderer.render(scene, camera);
         }
-        
-        // 启动
+
+        // ------------------- 初始化 -------------------
+        function init() {
+            const container = document.querySelector('.visualization-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 10);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const amb = new THREE.AmbientLight(0x404040);
+            scene.add(amb);
+            const d1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            d1.position.set(1,1,1); scene.add(d1);
+            const d2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            d2.position.set(-1,-1,-1); scene.add(d2);
+
+            sceneGroup = new THREE.Group();
+            scene.add(sceneGroup);
+
+            createVectorBasedGrid();
+            // 不创建外围边框
+            createAxes();
+            createSpanVisualization();
+            createParallelogram();
+            createVectors();
+
+            setupEventListeners();
+            // 初始更新
+            updateResultVector();
+            updateLegendAndInfo();
+            animate();
+        }
+
         init();
     </script>
 </body>
